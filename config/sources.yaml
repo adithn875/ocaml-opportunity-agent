@@ -1,0 +1,264 @@
+# One entry per source.
+#
+# method:
+#   yaml_file   - data file in a GitHub repo
+#   json_api    - public JSON endpoint
+#   html        - static HTML, Scrapling Fetcher
+#   js_rendered - page needs a browser fetcher
+#   rss         - RSS/Atom feed
+#   manual      - not reliably scrapeable yet; check by hand
+#
+# status:
+#   verified    - URL loads and is suitable for the declared method
+#   to_verify   - URL/method still needs investigation
+#   stale       - source loads but current opportunity data is uncertain
+#
+# If `api` exists, it is the endpoint the collector should use instead
+# of `url`.
+
+aggregators:
+
+  - name: OCaml.org jobs
+    url: "https://ocaml.org/jobs"
+    api: "https://raw.githubusercontent.com/ocaml/ocaml.org/main/data/jobs.yml"
+    method: yaml_file
+    status: verified
+    note: >
+      The jobs page may be bot-blocked. The page is built from this
+      YAML file in the ocaml/ocaml.org repository, so use the YAML
+      source for collection.
+
+  - name: OCaml Discuss Jobs
+    url: "https://discuss.ocaml.org/c/community/jobs/14"
+    method: rss
+    status: verified
+    note: "HTTP 200. Prefer the RSS feed if available."
+
+  - name: HN Who's Hiring (OCaml)
+    url: "https://hnhiring.com/technologies/ocaml"
+    method: html
+    status: verified
+    note: "HTTP 200 and robots.txt allows access."
+
+  - name: Tezos ecosystem careers
+    url: "https://careers.tezos.com/companies"
+    method: html
+    status: verified
+    note: "Original URL redirects to /companies; use the working canonical URL."
+
+
+companies:
+
+  # Tier 1: OCaml is a major part of the relevant opportunity.
+
+  - name: Jane Street
+    url: "https://www.janestreet.com/join-jane-street/open-roles/"
+    tier: 1
+    method: js_rendered
+    status: verified
+    note: >
+      HTTP 200. Roles are JS-rendered; identify the underlying data
+      request when implementing the collector.
+
+  - name: LexiFi
+    url: "https://www.lexifi.com/careers/software_engineer/"
+    tier: 1
+    method: html
+    status: verified
+    note: >
+      HTTP 200, but robots.txt returned 403 during verification.
+      Treat robots status as unclear and manually confirm before
+      automated collection.
+
+  - name: Ahrefs
+    url: "https://ahrefs.com/careers/ocaml-developer"
+    tier: 1
+    method: html
+    status: verified
+    note: >
+      HTTP 200. Verify that the role is still current during collection;
+      the historical OCaml listing is old.
+
+  - name: OCamlPro
+    url: "https://ocamlpro.com/jobs/"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200. No robots.txt was found."
+
+  - name: Serokell
+    url: "https://serokell.io/careers"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200. Replaces the old /jobs/ocaml-new URL."
+
+  - name: Cloud Software Group
+    url: "https://careers.cloud.com/"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200."
+
+  - name: SimCorp
+    url: "https://simcorp.wd3.myworkdayjobs.com/SimCorp_Jobs"
+    tier: 1
+    method: json_api
+    status: verified
+    note: >
+      The SimCorp website career URL is obsolete. The current Workday
+      board returns HTTP 200. A Workday API endpoint was successfully
+      queried during source research; formalize the API endpoint in
+      Milestone 2.
+
+  - name: Inria
+    url: "https://jobs.inria.fr/public/classic/fr/offres"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200."
+
+  - name: Dassault Systemes
+    url: "https://www.3ds.com/careers"
+    tier: 1
+    method: js_rendered
+    status: verified
+    note: "HTTP 200. Historical OCaml roles may be old; filter by date."
+
+  - name: Tarides
+    url: "https://jobs.world.luccasoftware.com/tarides-com/"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200. No robots.txt was found."
+
+  - name: Nomadic Labs
+    url: "https://www.nomadic-labs.com/careers/"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200 and robots.txt allows access."
+
+  - name: Trilitech
+    url: "https://www.trili.tech/careers"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200. Replaces the obsolete Greenhouse board URL."
+
+  - name: Functori
+    url: "https://www.functori.com/"
+    tier: 1
+    method: manual
+    status: verified
+    note: >
+      Homepage loads, but no reliable public jobs endpoint was
+      identified. Check manually until a dedicated careers source
+      is found.
+
+  - name: Imandra
+    url: "https://www.imandra.ai/"
+    tier: 1
+    method: manual
+    status: stale
+    note: >
+      Homepage loads. No reliable current careers endpoint was found.
+      Keep as a manual source until a current public jobs endpoint
+      is identified.
+
+  # Tier 2: only keep postings that explicitly mention relevant
+  # OCaml / Hack / Flow / Infer / functional programming.
+
+  - name: Docker
+    url: "https://www.docker.com/career-openings/"
+    tier: 2
+    method: js_rendered
+    status: verified
+    note: "HTTP 200. Filter heavily for OCaml/functional-programming relevance."
+
+  - name: Meta
+    url: "https://www.metacareers.com/"
+    tier: 2
+    method: manual
+    status: verified
+    note: >
+      Homepage loads. Do not scrape job listings until a compliant
+      public jobs endpoint and robots/terms are verified.
+
+  - name: Draper
+    url: "https://www.draper.com/careers"
+    tier: 2
+    method: html
+    status: verified
+    note: "HTTP 200."
+
+  - name: Bloomberg
+    url: "https://www.bloomberg.com/company/careers/"
+    tier: 2
+    method: manual
+    status: to_verify
+    note: >
+      Original careers URL redirects to /company/what-we-do/ and
+      /careers returned HTTP 403. Do not automate until an accessible,
+      compliant jobs source is identified.
+
+  # Extra OCaml employers.
+
+  - name: O(1) Labs
+    url: "https://o1labs.org/"
+    tier: 1
+    method: manual
+    status: to_verify
+    note: >
+      The historical Greenhouse URLs tested returned 404. Keep the
+      company as a manual source until a current public careers/jobs
+      endpoint is identified.
+
+  - name: TrustInSoft
+    url: "https://www.trust-in-soft.com/careers"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200; canonical URL redirects to /careers."
+
+  - name: Solvuu
+    url: "https://solvuu.com/company"
+    tier: 1
+    method: manual
+    status: verified
+    note: >
+      HTTP 200. No dedicated public jobs endpoint was established;
+      keep as a manual source for now.
+
+  - name: CEA (Frama-C)
+    url: "https://www.frama-c.com/html/jobs.html"
+    tier: 1
+    method: html
+    status: verified
+    note: "HTTP 200."
+
+
+social:
+
+  # Agent Reach channels.
+  # Only use channels that pass `agent-reach doctor`.
+  #
+  # RSS is currently available.
+  # Exa is NOT configured yet, so X search remains disabled for now.
+
+  - name: Reddit r/ocaml
+    channel: rss
+    url: "https://www.reddit.com/r/ocaml/.rss"
+
+  - name: Reddit r/functionalprogramming
+    channel: rss
+    url: "https://www.reddit.com/r/functionalprogramming/.rss"
+
+  # Disabled until Exa is configured and passes agent-reach doctor.
+  #
+  # - name: X search
+  #   channel: exa
+  #   queries:
+  #     - "OCaml hiring"
+  #     - "OCaml intern"
+  #     - "looking for OCaml developer"

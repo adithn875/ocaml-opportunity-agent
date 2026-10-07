@@ -1,0 +1,6 @@
+# Scrapling needs the "fetchers" extra, plain `pip install scrapling` is missing curl_cffi etc.
+scrapling[fetchers]
+# The PyPI package named "agent-reach" is NOT the real project (it's v0.1.0, unrelated).
+# Install the real one from GitHub:
+agent-reach @ https://github.com/Panniantong/agent-reach/archive/main.zip
+pyyaml
