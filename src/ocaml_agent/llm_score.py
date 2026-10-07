@@ -7,9 +7,19 @@ import urllib.request
 from pathlib import Path
 
 DB_PATH = Path("data/agent.db")
-API_URL = os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1") + "/chat/completions"
-API_KEY = os.environ["OMNIROUTE_API_KEY"]
-MODEL = "auto/best-reasoning"
+
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "omniroute").lower()
+
+if LLM_PROVIDER == "groq":
+    API_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1") + "/chat/completions"
+    API_KEY = os.environ["GROQ_API_KEY"]
+    MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+elif LLM_PROVIDER == "omniroute":
+    API_URL = os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1") + "/chat/completions"
+    API_KEY = os.environ["OMNIROUTE_API_KEY"]
+    MODEL = os.getenv("OMNIROUTE_MODEL", "auto/best-reasoning")
+else:
+    raise ValueError(f"Unsupported LLM_PROVIDER: {LLM_PROVIDER}")
 
 
 def score_job(job):
@@ -77,6 +87,7 @@ Return ONLY valid JSON:
         headers={
             "Authorization": f"Bearer {API_KEY}",
             "Content-Type": "application/json",
+            "User-Agent": "curl/8.7.1",
         },
         method="POST",
     )
