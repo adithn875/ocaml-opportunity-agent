@@ -10,6 +10,7 @@ from . import inria_collector
 from . import tezos_collector
 from . import trustinsoft_collector
 from . import framac_collector
+from . import agent_search_adapter
 
 
 DB_PATH = "data/agent.db"
@@ -94,6 +95,7 @@ def main():
         ("Frama-C", lambda: framac_collector.save_jobs(
             framac_collector.collect_opportunities()
         )),
+        ("Agent Search", agent_search_adapter.main),
     ]
 
     results = []

@@ -19,7 +19,7 @@ jobs:
 
       - name: Clone private state repo
         run: |
-          git clone https://${{ secrets.OCAML_AGENT_STATE_PAT }}@github.com/adithn875/ocaml-opportunity-agent-state.git state-repo
+          git clone -b master https://${{ secrets.OCAML_AGENT_STATE_PAT }}@github.com/adithn875/ocaml-opportunity-agent-state.git state-repo
           ls -la state-repo/
 
       - name: Set up Python
