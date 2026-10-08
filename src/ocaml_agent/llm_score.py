@@ -4,6 +4,7 @@ import json
 import os
 import sqlite3
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -177,11 +178,21 @@ def main():
         for job in jobs:
             try:
                 technical_score, practicality_score, classification, technical_reason, practicality_reason = score_job(job)
+            except urllib.error.HTTPError as http_error:
+                if http_error.code == 429:
+                    print(f'RATE LIMIT {job["id"]}: {job["title"]} - using fallback')
+                    technical_score = int(job["score"] or 0)
+                    practicality_score = 70
+                    classification = "Good Fit"
+                    technical_reason = "Skipped due to rate limiting; deterministic OCaml relevance retained."
+                    practicality_reason = "Neutral fallback due to rate limiting."
+                else:
+                    raise
             except (ValueError, KeyError, TypeError) as error:
                 print(f'RETRY {job["id"]}: {job["title"]} - invalid LLM response')
                 try:
                     technical_score, practicality_score, classification, technical_reason, practicality_reason = score_job(job)
-                except (ValueError, KeyError, TypeError) as retry_error:
+                except (ValueError, KeyError, TypeError, urllib.error.HTTPError) as retry_error:
                     print(f'FALLBACK {job["id"]}: {job["title"]} - using neutral practicality score')
                     technical_score = int(job["score"] or 0)
                     practicality_score = 70
