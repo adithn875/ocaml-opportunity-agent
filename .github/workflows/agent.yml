@@ -30,7 +30,7 @@ jobs:
       - name: Set up OCaml
         run: |
           sudo apt-get update
-          sudo apt-get install -y ocaml dune opam
+          sudo apt-get install -y ocaml ocaml-dune opam
 
       - name: Restore agent database
         run: |
