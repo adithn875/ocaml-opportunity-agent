@@ -3,6 +3,7 @@
 import json
 import os
 import sqlite3
+import time
 import urllib.request
 from pathlib import Path
 
@@ -92,8 +93,22 @@ Return ONLY valid JSON:
         method="POST",
     )
 
-    with urllib.request.urlopen(request, timeout=120) as response:
-        data = json.loads(response.read())
+    # Retry logic for rate limiting (HTTP 429)
+    last_error = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                data = json.loads(response.read())
+            break  # Success, exit retry loop
+        except urllib.error.HTTPError as e:
+            last_error = e
+            if e.code == 429 and attempt < 2:
+                # Rate limited - wait with exponential backoff
+                wait_time = (2 ** attempt) + 1  # 1, 3 seconds
+                print(f"    Rate limited (429), waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+                continue
+            raise  # Re-raise if not 429 or out of retries
 
     content = data["choices"][0]["message"]["content"].strip()
 
