@@ -54,7 +54,7 @@ jobs:
       - name: Run collection
         run: |
           source .venv/bin/activate
-          python -m ocaml_agent.main collect
+          PYTHONPATH=src python -m ocaml_agent.main collect
 
       - name: Run candidate filtering and LLM scoring
         env:
@@ -62,7 +62,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           source .venv/bin/activate
-          python -m ocaml_agent.main score
+          PYTHONPATH=src python -m ocaml_agent.main score
 
       - name: Send Telegram notification
         env:
@@ -70,7 +70,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           source .venv/bin/activate
-          python -m ocaml_agent.main notify
+          PYTHONPATH=src python -m ocaml_agent.main notify
 
       - name: Update private state repo
         run: |
