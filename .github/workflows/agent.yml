@@ -1,0 +1,89 @@
+name: OCaml Opportunity Agent
+
+on:
+  schedule:
+    - cron: '30 1 * * *'  # 1:30 AM UTC = 7:00 AM IST
+  workflow_dispatch:
+
+concurrency:
+  group: ocaml-agent-run
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+
+      - name: Clone private state repo
+        run: |
+          git clone https://${{ secrets.OCAML_AGENT_STATE_PAT }}@github.com/adithn875/ocaml-opportunity-agent-state.git state-repo
+          ls -la state-repo/
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: '5.1'
+
+      - name: Restore agent database
+        run: |
+          mkdir -p data
+          cp state-repo/agent.db data/agent.db
+          ls -la data/
+
+      - name: Install Python dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build OCaml scorer
+        run: |
+          cd ocaml-scoring/ocaml_scoring
+          dune build
+          cd ../../
+
+      - name: Run collection
+        run: |
+          source .venv/bin/activate
+          python -m ocaml_agent.main collect
+
+      - name: Run candidate filtering and LLM scoring
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          source .venv/bin/activate
+          python -m ocaml_agent.main score
+
+      - name: Send Telegram notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          source .venv/bin/activate
+          python -m ocaml_agent.main notify
+
+      - name: Update private state repo
+        run: |
+          cp data/agent.db state-repo/agent.db
+          cd state-repo
+          git config user.name "OCaml Agent"
+          git config user.email "agent@ocaml-opportunity.local"
+          git add agent.db
+          git commit -m "Update agent.db from GitHub Actions run" || echo "No changes to commit"
+          git push
+          cd ../
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Workflow failed. Check logs at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
