@@ -16,7 +16,7 @@ if LLM_PROVIDER == "groq":
     MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 elif LLM_PROVIDER == "omniroute":
     API_URL = os.getenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1") + "/chat/completions"
-    API_KEY = os.environ["OMNIROUTE_API_KEY"]
+    API_KEY = os.getenv("OMNIROUTE_API_KEY", "")  # Optional for OmniRoute
     MODEL = os.getenv("OMNIROUTE_MODEL", "auto/best-reasoning")
 else:
     raise ValueError(f"Unsupported LLM_PROVIDER: {LLM_PROVIDER}")
