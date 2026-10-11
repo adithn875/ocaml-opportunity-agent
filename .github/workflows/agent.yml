@@ -64,6 +64,11 @@ jobs:
           source .venv/bin/activate
           PYTHONPATH=src python -m ocaml_agent.main score
 
+      - name: Calculate final rankings
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=src python -m ocaml_agent.main rank --write
+
       - name: Send Telegram notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
