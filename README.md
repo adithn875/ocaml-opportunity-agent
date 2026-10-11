@@ -58,8 +58,9 @@ flowchart TD
     GH <--> P["Private state repository"]
     P -. "Restores and persists database" .-> DB
     L -. "Configured API endpoint" .-> EP["LLM provider"]
-```
 
+```
+**Explore the interactive architecture:** [Open the interactive diagram](architecture/ocaml-opportunity-agent.html)
 
 
 ### Pipeline stages
