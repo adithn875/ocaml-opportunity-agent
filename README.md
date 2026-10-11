@@ -35,23 +35,32 @@ The project combines **Python for collection and orchestration** with **OCaml fo
 
 ```mermaid
 flowchart TD
-    A[Opportunity Sources] --> B[Python Collectors]
-    B --> C[(SQLite Database)]
-    C --> D[Candidate Filtering]
-    D --> E[OCaml Deterministic Scoring]
-    E --> F[LLM-assisted Evaluation]
-    F --> G[Final Ranking]
-    G --> H[Telegram Notifications]
+    S["Public opportunity sources"] --> C["Python collectors"]
+    C --> DB[("SQLite agent database")]
 
-    I[GitHub Actions] --> B
-    I --> D
-    I --> E
-    I --> F
-    I --> G
-    I --> H
-    I <--> J[Private State Repository]
-    J <--> C
+    DB --> F["Candidate eligibility filter"]
+    F --> L["LLM contextual evaluator"]
+    L --> DB
+
+    DB --> R["Final ranking"]
+    R --> DB
+    DB --> T["Telegram digest builder"]
+    T --> API["Telegram Bot API"]
+
+    OC["OCaml deterministic scorer"] -. "Available scoring stage" .-> DB
+
+    GH["GitHub Actions workflow"] -. "Orchestrates pipeline" .-> C
+    GH -.-> F
+    GH -.-> L
+    GH -.-> R
+    GH -.-> T
+
+    GH <--> P["Private state repository"]
+    P -. "Restores and persists database" .-> DB
+    L -. "Configured API endpoint" .-> EP["LLM provider"]
 ```
+
+
 
 ### Pipeline stages
 
