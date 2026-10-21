@@ -18,12 +18,12 @@ let read_line_option () =
   | exception End_of_file -> None
 
 let () =
+  let json_mode = Array.exists (( = ) "--json") Sys.argv in
   let title =
     match read_line_option () with
     | Some value -> value
     | None -> "Unknown job"
   in
-
   let company = read_line_option () in
   let location = read_line_option () in
   let description = read_line_option () in
@@ -42,11 +42,30 @@ let () =
   let score = Ocaml_scoring.Scoring.total signals in
   let breakdown = Ocaml_scoring.Scoring.breakdown signals in
 
-  Printf.printf "Job: %s\n" job.title;
-  Printf.printf "Score: %d\n" score;
-  Printf.printf "Signals:\n";
-
-  List.iter
-    (fun (signal, points) ->
-      Printf.printf "  +%d %s\n" points (signal_name signal))
-    breakdown
+  if json_mode then
+    let json =
+      `Assoc
+        [
+          ("title", `String job.title);
+          ("score", `Int score);
+          ( "signals",
+            `List
+              (List.map
+                 (fun (signal, points) ->
+                   `Assoc
+                     [
+                       ("name", `String (signal_name signal));
+                       ("weight", `Int points);
+                     ])
+                 breakdown) );
+        ]
+    in
+    print_endline (Yojson.Basic.to_string json)
+  else (
+    Printf.printf "Job: %s\n" job.title;
+    Printf.printf "Score: %d\n" score;
+    Printf.printf "Signals:\n";
+    List.iter
+      (fun (signal, points) ->
+        Printf.printf "  +%d %s\n" points (signal_name signal))
+      breakdown)
