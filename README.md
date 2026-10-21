@@ -1,406 +1,372 @@
 # OCaml Opportunity Agent
 
-> An open-source agent for discovering, filtering, and ranking software opportunities with a focus on **OCaml, compilers, programming languages, formal methods, and static analysis**.
+> An automated opportunity discovery and ranking system for the OCaml and functional programming ecosystems, with a focus on compilers, programming languages, formal methods, and static analysis.
 
 [![OCaml](https://img.shields.io/badge/OCaml-5.x-EC6813?logo=ocaml&logoColor=white)](https://ocaml.org/)
 [![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitHub](https://img.shields.io/badge/Hosted_on-GitHub_Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/features/actions)
+
+**Repository:** [adithn875/ocaml-opportunity-agent](https://github.com/adithn875/ocaml-opportunity-agent)
 
 ## Overview
 
-Finding genuinely relevant OCaml opportunities is harder than finding generic software jobs.
+Finding relevant opportunities in the OCaml ecosystem often requires searching across company career pages, community discussions, research institutes, compiler projects, and specialized job boards.
 
-Important opportunities can be scattered across company career pages, OCaml community discussions, research institutes, compiler projects, formal-methods organizations, hiring threads, and open-source communities.
+Generic keyword searches can produce noisy results, while relevant opportunities may be scattered across sources that are difficult to monitor consistently.
 
-A simple keyword search produces too much noise.
+**OCaml Opportunity Agent** automates this discovery process through a multi-stage pipeline that collects opportunities, filters candidates, evaluates relevance, calculates final rankings, and delivers notifications.
 
-**OCaml Opportunity Agent** is designed to solve that problem with a multi-stage pipeline:
+The project combines **Python for collection and orchestration** with **OCaml for deterministic relevance scoring**. An LLM-assisted stage adds contextual evaluation, while a final ranking stage combines technical relevance with practical considerations.
+
+## Key Features
+
+- **Multi-source collection** — gathers opportunities from supported job boards, company pages, and community sources.
+- **OCaml-based scoring** — uses a deterministic OCaml scoring component to evaluate relevance.
+- **Candidate filtering** — narrows the pool before sending suitable candidates for additional evaluation.
+- **LLM-assisted evaluation** — evaluates eligible opportunities using a configurable OpenAI-compatible API.
+- **Final ranking** — combines technical relevance and practicality into a single score.
+- **SQLite persistence** — stores collected opportunities and scoring data locally.
+- **Telegram notifications** — delivers ranked opportunities through Telegram.
+- **Automated workflows** — uses GitHub Actions to run the pipeline on a schedule or manually.
+- **Persistent workflow state** — supports saving the database in a separate private repository between workflow runs.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    S["Public opportunity sources"] --> C["Python collectors"]
+    C --> DB[("SQLite agent database")]
+
+    DB --> F["Candidate eligibility filter"]
+    F --> L["LLM contextual evaluator"]
+    L --> DB
+
+    DB --> R["Final ranking"]
+    R --> DB
+    DB --> T["Telegram digest builder"]
+    T --> API["Telegram Bot API"]
+
+    OC["OCaml deterministic scorer"] -. "Available scoring stage" .-> DB
+
+    GH["GitHub Actions workflow"] -. "Orchestrates pipeline" .-> C
+    GH -.-> F
+    GH -.-> L
+    GH -.-> R
+    GH -.-> T
+
+    GH <--> P["Private state repository"]
+    P -. "Restores and persists database" .-> DB
+    L -. "Configured API endpoint" .-> EP["LLM provider"]
+
+```
+**Explore the interactive architecture:** [Open the interactive diagram](architecture/ocaml-opportunity-agent.html)
+
+
+### Pipeline stages
+
+| Stage | Responsibility |
+|---|---|
+| Collection | Retrieves opportunities from configured sources. |
+| Persistence | Stores opportunities and relevant metadata in SQLite. |
+| Candidate filtering | Selects records eligible for scoring. |
+| Deterministic scoring | Calculates relevance using the OCaml scoring component. |
+| LLM evaluation | Adds contextual assessment to eligible candidates. |
+| Final ranking | Combines technical and practical scores. |
+| Notification | Sends relevant results through Telegram. |
+| Automation | Runs the pipeline through GitHub Actions and preserves state. |
+
+## Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| OCaml | Deterministic relevance scoring |
+| Python | Collection, filtering, orchestration, and API integration |
+| SQLite | Local persistence |
+| Scrapling | Web data collection where configured |
+| OpenAI-compatible APIs | LLM-assisted evaluation |
+| Telegram Bot API | Notifications |
+| GitHub Actions | Scheduled and manual automation |
+| Git | Version control |
+
+## Ranking Method
+
+The final ranking combines technical relevance with practical suitability.
+
+The current implementation uses the following weighted formula:
+
+$$
+\text{Final Score} = 0.7 \times \text{Technical Score} + 0.3 \times \text{Practicality Score}
+$$
+
+The weights are defined in the ranking implementation. The final score helps prioritize opportunities that are technically relevant while also considering practical factors.
+
+The LLM evaluation stage is separate from the deterministic OCaml scorer. This separation helps keep the scoring pipeline modular and easier to test.
+
+## Supported Opportunity Sources
+
+The project is designed to collect opportunities from configured sources, including relevant company career pages, community discussions, and specialized job listings.
+
+The exact sources successfully collected depend on the collectors enabled in the current configuration. Some sources may be unavailable temporarily or may change their page structure.
+
+## Project Structure
 
 ```text
-Opportunity Sources
-        │
-        ▼
-Scrapling Collectors
-        │
-        ▼
-SQLite
-        │
-        ▼
-Deterministic OCaml Scoring
-        │
-        ▼
-Candidate Filtering
-        │
-        ▼
-LLM Contextual Scoring
-        │
-        ▼
-Final Ranking
-        │
-        ▼
-Daily Digest
-The system is intentionally hybrid:
-- Python handles collection, storage, orchestration, and integrations.
-- OCaml handles deterministic domain-specific relevance scoring.
-- LLMs provide contextual judgment after deterministic filtering.
-The goal is not to replace deterministic logic with an LLM. It is to use each tool where it is strongest.
-Current Status
-Stage	Status
-Source configuration	✅ Complete
-Scrapling-based collection	✅ Complete
-SQLite storage	✅ Complete
-OCaml deterministic scoring	✅ Complete
-Candidate filtering	✅ Complete
-LLM contextual scoring	✅ Complete
-Final ranking	🚧 Next
-Daily digest	🚧 Planned
-Email/message delivery	🚧 Planned
-GitHub Actions automation	🚧 Planned
-
-
-The current local dataset contains 221 collected opportunities.
-67 candidates passed the filtering stage and received LLM scores.
-Architecture
-┌───────────────────────────────────────────────────────┐
-│                  Opportunity Sources                  │
-│                                                       │
-│ OCaml.org • Discuss • Jane Street • Inria • OCamlPro │
-│ Tezos • Frama-C • TrustInSoft • HN Who's Hiring      │
-└──────────────────────────┬────────────────────────────┘
-                           │
-                           ▼
-┌───────────────────────────────────────────────────────┐
-│                 Python Collection Layer               │
-│                                                       │
-│                 Scrapling + Collectors               │
-└──────────────────────────┬────────────────────────────┘
-                           │
-                           ▼
-┌───────────────────────────────────────────────────────┐
-│                        SQLite                         │
-│                                                       │
-│ title • company • location • description • source    │
-│ deterministic score • LLM score • LLM reason         │
-└──────────────────────────┬────────────────────────────┘
-                           │
-                           ▼
-┌───────────────────────────────────────────────────────┐
-│                  OCaml Scoring Engine                 │
-│                                                       │
-│       Signal detection → weighted domain score       │
-└──────────────────────────┬────────────────────────────┘
-                           │
-                           ▼
-┌───────────────────────────────────────────────────────┐
-│                  Candidate Filtering                  │
-│                                                       │
-│       Remove weak matches and aggregate posts        │
-└──────────────────────────┬────────────────────────────┘
-                           │
-                           ▼
-┌───────────────────────────────────────────────────────┐
-│                    LLM Scoring                        │
-│                                                       │
-│              OmniRoute → reasoning model              │
-└──────────────────────────┬────────────────────────────┘
-                           │
-                           ▼
-                    Final Ranking
-                         TODO
-
-Why Two Ranking Layers?
-1. Deterministic OCaml Scoring
-The first ranking layer is implemented in OCaml.
-It looks for domain signals such as:
-Signal	Weight
-OxCaml	35
-OCaml	30
-Compiler	25
-Dune	15
-Opam	15
-Functional Programming	15
-Programming Languages	15
-Type Systems	15
-Static Analysis	15
-Formal Verification	15
-Formal Methods	15
-OCaml Ecosystem	15
-
-
-This provides an explainable and reproducible first-pass score.
-2. LLM Contextual Scoring
-Candidates are then evaluated using an OpenAI-compatible LLM endpoint through OmniRoute.
-The LLM considers:
-- job title
-- company
-- location
-- description
-- OCaml relevance
-- compiler/programming-language relevance
-- formal-methods relevance
-- static-analysis relevance
-Each evaluation produces:
-score: 0–100
-reason: short explanation
-model: model used
-
-The deterministic and LLM scores remain separate in SQLite.
-Example Results
-Some highly relevant opportunities currently identified by the pipeline include:
-Research engineer: static analysis of OCaml programs       100
-Research engineer or postdoc: static analysis of OCaml     100
-Tools & Compilers Research and Development Internship      100
-OCaml Developer                                             100
-Software Engineer (OCaml) — LexiFi                          98
-Programming Language Engineer                                95+
-Compiler Engineer                                            95+
-
-The system also identifies weaker matches, including generic engineering roles where OCaml is only indirectly relevant.
-The objective is therefore not simply to search for the word "OCaml".
-Sources
-The collector currently supports:
-- OCaml.org
-- OCaml Discuss
-- Hacker News Who's Hiring
-- Jane Street
-- OCamlPro
-- Inria
-- Tezos
-- TrustInSoft
-- Frama-C
-Source configuration lives in:
-config/sources.yaml
-
-The collection layer uses Scrapling fetchers.
-Project Structure
 ocaml-opportunity-agent/
-│
-├── config/
-│   └── sources.yaml
-│
+├── .github/
+│   └── workflows/
+│       └── agent.yml
 ├── ocaml-scoring/
 │   └── ocaml_scoring/
-│       ├── bin/
-│       ├── lib/
-│       │   ├── detect.ml
-│       │   ├── job.ml
-│       │   ├── scoring.ml
-│       │   └── signal.ml
-│       ├── test/
-│       ├── dune-project
-│       └── ocaml_scoring.opam
-│
-├── scripts/
-│   └── check_sources.py
-│
 ├── src/
 │   └── ocaml_agent/
+│       ├── main.py
 │       ├── candidates.py
-│       ├── collect.py
-│       ├── collector.py
-│       ├── db.py
 │       ├── llm_score.py
-│       ├── score_jobs.py
-│       └── source-specific collectors
-│
+│       ├── ranking.py
+│       └── score_jobs.py
 ├── tests/
-│   └── test_candidates.py
-│
-├── requirements.txt
-├── .env.example
-├── .gitignore
+│   ├── test_candidates.py
+│   └── test_ranking.py
+├── data/
+├── pyproject.toml
 └── README.md
+```
 
-Installation
-Clone the repository:
+The tree above highlights key components rather than every file in the repository. Additional collectors, configuration files, and tests may be present.
+
+## Getting Started
+
+### Prerequisites
+
+Install the following tools before running the project:
+
+- Python 3
+- OCaml and Dune
+- Git
+- Access to an OpenAI-compatible API if you want to use LLM-assisted scoring
+- Telegram bot credentials if you want to receive notifications
+
+### 1. Clone the repository
+
+```bash
 git clone https://github.com/adithn875/ocaml-opportunity-agent.git
 cd ocaml-opportunity-agent
+```
 
-Create the Python environment:
+### 2. Set up Python
+
+Create and activate a virtual environment:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
 
-Install dependencies:
-pip install -r requirements.txt
+Install the project dependencies using the dependency configuration included in the repository. For example, if the project is configured for editable installation:
 
-Install Scrapling browser dependencies:
-scrapling install
+```bash
+pip install -e .
+```
 
-Check Agent Reach:
-agent-reach doctor
+If the repository specifies a different installation command or dependency file, follow that configuration.
 
-Initialize the database:
-PYTHONPATH=src .venv/bin/python -m ocaml_agent.db
+### 3. Build the OCaml scorer
 
-Check configured sources:
-PYTHONPATH=src .venv/bin/python scripts/check_sources.py
+From the repository root:
 
-Collect Opportunities
-Run:
-PYTHONPATH=src .venv/bin/python -m ocaml_agent.collect
-
-Collected opportunities are stored locally in:
-data/agent.db
-
-The database is intentionally ignored by Git.
-Deterministic OCaml Scoring
-Build the OCaml scoring engine:
-cd ocaml-scoring/ocaml_scoring
+```bash
+cd ocaml-scoring
 dune build
+cd ..
+```
 
-Run tests:
-dune test
+Make sure the OCaml build succeeds before running the full pipeline.
 
-Return to the project root:
-cd ../..
+### 4. Configure environment variables
 
-Score the collected opportunities:
-PYTHONPATH=src .venv/bin/python -m ocaml_agent.score_jobs
+Create a local environment configuration appropriate for your selected LLM provider and notification setup.
 
-Candidate Filtering
-Inspect the filtered candidate set:
-PYTHONPATH=src .venv/bin/python -m ocaml_agent.candidates
+For a local OmniRoute configuration, the following settings may be used:
 
-Candidate decisions are made by the compiled OCaml executable, which must be
-built before running candidate inspection or LLM scoring. Python passes each
-stored record (including its source) to the executable and retains database
-access and orchestration.
+Candidate decisions are made by the compiled OCaml executable, which must be built before running candidate inspection or LLM scoring. Python passes each stored record, including its source, to the executable and retains database access and orchestration.
 
 The filter accepts opportunities that either:
-1. have a sufficiently strong deterministic score and a real source description, or
-2. have an explicitly OCaml-relevant title such as OCaml, compiler, formal methods, static analysis, or type systems.
+
+1. Have a sufficiently strong deterministic score and a real source description, or
+2. Have an explicitly OCaml-relevant title such as OCaml, compiler, formal methods, static analysis, or type systems.
+
 It rejects:
-- announcement-only posts
-- aggregate job lists
-- weak generic title-only matches
-- weak source-only matches
+- Announcement-only posts
+- Aggregate job lists
+- Weak generic title-only matches
+- Weak source-only matches
 
-The OCaml title and source rules use ASCII case-insensitive matching. This is
-sufficient for the current English-language signal vocabulary; it does not
-provide Python's full Unicode `casefold()` equivalence.
-LLM Scoring
+The OCaml title and source rules use ASCII case-insensitive matching. This is sufficient for the current English-language signal vocabulary; it does not provide Python's full Unicode `casefold()` equivalence.
+
+### LLM Scoring
+
 LLM scoring uses the local OmniRoute OpenAI-compatible API.
-Set the API key in your environment:
+
+Set the environment variables in your shell:
+
+```bash
+export LLM_PROVIDER=omniroute
+export LLM_BASE_URL="http://localhost:20128/v1"
 export OMNIROUTE_API_KEY="your-api-key"
+export LLM_MODEL="auto/best-reasoning"
+```
 
-Then run:
-PYTHONPATH=src .venv/bin/python -m ocaml_agent.llm_score
+Replace the example API key with your actual credential. Keep credentials private and never commit secrets to Git.
 
-The current route is:
-auto/best-reasoning
+OmniRoute must be running and reachable at the configured address. If you use another provider, configure the corresponding environment variables supported by the implementation.
 
-This allows OmniRoute to select the configured best reasoning model instead of hard-coding a single model.
-Never commit API keys to Git.
-Data Model
-The main SQLite table is:
-seen_items
+Configure Telegram credentials separately if you want to enable notifications.
+export OMNIROUTE_API_KEY="your-api-key"
+export LLM_MODEL="auto/best-reasoning"
+```
 
-Important fields include:
-id
-canonical_url
-title
-company
-type
-location
-remote
-posted_date
-deadline
-source
-description
-score
-llm_score
-llm_reason
-llm_model
-first_seen
-emailed
+Replace the example API key with your actual credential. Keep credentials private and never commit secrets to Git.
 
-The deterministic OCaml score and LLM score are intentionally stored independently.
-Design Principles
-Deterministic First
-Not every scraped opportunity should consume an LLM request.
-Deterministic filtering reduces noise and API usage before contextual evaluation.
-Explainable Scoring
-The OCaml scoring engine is deliberately simple enough to inspect and reason about.
-A developer should be able to understand why an opportunity received its deterministic score.
-Preserve Source Data
-Descriptions and source metadata are retained where available so ranking logic can be improved without requiring another scrape.
-Fail Safely
-A failure from one source should not prevent the remaining sources from being processed.
-Separate Responsibilities
-Collection, storage, deterministic scoring, LLM evaluation, ranking, and delivery are separate stages.
-This makes the system easier to test and extend.
-Roadmap
-Discovery
-- [x] Multi-source opportunity collection
-- [x] SQLite persistence
-- [x] Description enrichment
-- [x] Source verification
-Ranking
-- [x] Deterministic OCaml scoring
-- [x] Candidate filtering
-- [x] LLM contextual scoring
-- [ ] Final ranking formula
-- [ ] Duplicate/opportunity clustering
-- [ ] Freshness scoring
-Delivery
-- [ ] Daily digest generation
-- [ ] Email delivery
-- [ ] Message/notification integration
-- [ ] Already-seen opportunity handling
-Automation
-- [ ] GitHub Actions scheduled execution
-- [ ] Automated daily collection
-- [ ] Daily ranking pipeline
-- [ ] Failure reporting
-Future Ideas
-- [ ] Personal preference learning
-- [ ] Company-level opportunity tracking
-- [ ] Internship/full-time classification
-- [ ] Location preference scoring
-- [ ] Salary extraction
-- [ ] Application deadline tracking
-- [ ] Historical ranking analysis
-Why OCaml?
-OCaml is not only the subject of the opportunities being discovered — it is also part of the system itself.
-The deterministic relevance engine is written in OCaml as a practical example of using OCaml for a real production-style component inside a larger application.
-The scoring layer uses concepts including:
-- algebraic data types
-- pattern matching
-- modules
-- functional programming
-- deterministic transformations
-- testable domain logic
-Python handles collection and integrations, while OCaml owns the domain-specific scoring logic.
-Contributing
-Contributions are welcome.
-Useful areas include:
-- adding reliable OCaml-related opportunity sources
-- improving source-specific collectors
-- improving relevance signals
-- improving candidate filtering
-- adding tests
-- improving ranking
-- building delivery integrations
-- improving documentation
-Before submitting a pull request, run:
-dune test
+OmniRoute must be running and reachable at the configured address. If you use another provider, configure the corresponding environment variables supported by the implementation.
 
-and the Python test suite.
-Please do not commit:
-.env
-data/*.db
-.venv/
-_build/
+Configure Telegram credentials separately if you want to enable notifications.
 
-Security
-Never commit API keys, tokens, cookies, credentials, or private collected data.
-Local secrets belong in environment variables or .env, which is intentionally ignored by Git.
-License
-This project is intended to be released under the MIT License.
-Author
-Adith N K
-Building an OCaml-focused opportunity discovery system while learning, contributing to, and exploring the OCaml ecosystem.
-- GitHub: https://github.com/adithn875
-- Project: https://github.com/adithn875/ocaml-opportunity-agent
-If you find the project useful, consider giving it a ⭐.
+## Running the Agent
+
+Run commands from the repository root with the Python environment activated.
+
+### Collect opportunities
+
+```bash
+PYTHONPATH=src python -m ocaml_agent.main collect
+```
+
+### Calculate deterministic scores
+
+```bash
+PYTHONPATH=src python -m ocaml_agent.main deterministic-score
+```
+
+### Run LLM-assisted scoring
+
+```bash
+PYTHONPATH=src python -m ocaml_agent.main score
+```
+
+### Preview final rankings
+
+```bash
+PYTHONPATH=src python -m ocaml_agent.main rank
+```
+
+### Persist final rankings
+
+```bash
+PYTHONPATH=src python -m ocaml_agent.main rank --write
+```
+
+### Send notifications
+
+```bash
+PYTHONPATH=src python -m ocaml_agent.main notify
+```
+
+These commands reflect the intended CLI workflow. Run the command's help option if you need to confirm available arguments in your current checkout.
+
+## Automated Execution
+
+The GitHub Actions workflow supports automated execution of the opportunity discovery pipeline.
+
+The workflow can coordinate:
+
+1. Checking out the public project repository.
+2. Restoring persistent state from a private repository.
+3. Setting up Python and OCaml.
+4. Installing dependencies and building the scorer.
+5. Collecting opportunities.
+6. Filtering candidates and running LLM-assisted scoring.
+7. Calculating final rankings.
+8. Sending Telegram notifications.
+9. Saving updated state.
+
+To enable the workflow in your own fork, configure the repository secrets and variables required by your workflow file. These may include API credentials, Telegram bot credentials, and private state repository access.
+
+Never put secret values directly into workflow YAML or source code.
+
+## Testing
+
+Run the relevant tests from the repository root:
+
+```bash
+python -m pytest
+```
+
+To run the ranking tests specifically:
+
+```bash
+python -m pytest tests/test_ranking.py
+```
+
+To run the candidate filtering tests:
+
+```bash
+python -m pytest tests/test_candidates.py
+```
+
+Tests help verify ranking behavior, filtering rules, and other project logic as the pipeline evolves.
+
+## Design Principles
+
+- **Modularity:** collectors, scoring, ranking, and notifications are separate stages.
+- **Deterministic core:** the OCaml scorer provides a distinct, testable scoring component.
+- **Practical automation:** GitHub Actions reduces the need for repeated manual execution.
+- **Persistent state:** SQLite and the private state repository support continuity between runs.
+- **Safe configuration:** credentials belong in environment variables or secret stores.
+- **Incremental development:** new collectors and ranking improvements should be testable independently.
+
+## Roadmap
+
+Potential areas for future improvement include:
+
+- Expanding and improving source coverage.
+- Adding regression tests for collectors and parsing changes.
+- Improving duplicate detection and data quality.
+- Tracking changes in job availability over time.
+- Making ranking explanations more transparent.
+- Evaluating relevance against manually reviewed examples.
+- Improving reliability and observability of automated runs.
+- Exploring a user-facing dashboard or subscription-based opportunity feed.
+
+## Why OCaml?
+
+OCaml is particularly relevant to this project because its type system and functional programming model encourage explicit data handling and composable logic.
+
+Using OCaml for deterministic scoring also provides a practical way to explore OCaml in a real software project, rather than limiting it to isolated exercises.
+
+## Contributing
+
+Contributions and suggestions are welcome.
+
+If you want to contribute:
+
+1. Fork the repository.
+2. Create a focused feature branch.
+3. Make your changes and add tests where appropriate.
+4. Run the relevant test suite.
+5. Open a pull request describing the change.
+
+For collector changes, consider how the implementation behaves when a source is unavailable or its HTML structure changes.
+
+## License
+
+Check the repository's `LICENSE` file for the applicable license terms.
+
+## Author
+
+**Adith N K**
+
+- GitHub: [@adithn875](https://github.com/adithn875)
+- Project: [OCaml Opportunity Agent](https://github.com/adithn875/ocaml-opportunity-agent)
+
+Built as a practical project combining OCaml, Python, automation, and functional-programming opportunity discovery.
