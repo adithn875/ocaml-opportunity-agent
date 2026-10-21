@@ -1,0 +1,680 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OCaml Opportunity Agent",
+    "subtitle": "Python orchestration with an explicit JSON boundary to OCaml deterministic domain logic",
+    "output": "architecture/ocaml-opportunity-agent.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:adithn875/ocaml-opportunity-agent.git",
+      "link_mode": "local-only",
+      "revision": "47a85746628ef87a184cb5e2df2e71db9f551a4b"
+    }
+  },
+  "components": [
+    {
+      "id": "github-actions",
+      "type": "cloud",
+      "label": "GitHub Actions job",
+      "sublabel": "daily schedule or manual dispatch",
+      "tag": "Workflow",
+      "icon": "clock",
+      "pos": [
+        30,
+        310
+      ],
+      "size": [
+        180,
+        74
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/agent.yml",
+          "line": 3,
+          "end_line": 14,
+          "label": "triggers and runner"
+        },
+        {
+          "path": ".github/workflows/agent.yml",
+          "line": 48,
+          "end_line": 78,
+          "label": "build and pipeline commands"
+        }
+      ]
+    },
+    {
+      "id": "public-sources",
+      "type": "external",
+      "label": "Public opportunity sources",
+      "sublabel": "boards, feeds, APIs, and career pages",
+      "icon": "external",
+      "pos": [
+        25,
+        105
+      ],
+      "size": [
+        195,
+        70
+      ],
+      "sources": [
+        {
+          "path": "config/sources.yaml",
+          "line": 19,
+          "end_line": 58,
+          "label": "configured sources"
+        }
+      ]
+    },
+    {
+      "id": "cli-dispatcher",
+      "type": "backend",
+      "label": "Python CLI dispatcher",
+      "sublabel": "routes collect, score, rank, and notify",
+      "tag": "Python",
+      "icon": "backend",
+      "pos": [
+        340,
+        310
+      ],
+      "size": [
+        190,
+        74
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/main.py",
+          "line": 11,
+          "end_line": 38,
+          "label": "command dispatch"
+        }
+      ]
+    },
+    {
+      "id": "collectors",
+      "type": "backend",
+      "label": "Opportunity collectors",
+      "sublabel": "10 adapters with isolated failures",
+      "tag": "Python",
+      "icon": "backend",
+      "pos": [
+        270,
+        105
+      ],
+      "size": [
+        205,
+        70
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/collect.py",
+          "line": 71,
+          "end_line": 118,
+          "label": "collector orchestration"
+        },
+        {
+          "path": "src/ocaml_agent/jane_street_collector.py",
+          "line": 142,
+          "end_line": 237,
+          "label": "Jane Street adapter"
+        },
+        {
+          "path": "src/ocaml_agent/agent_search_adapter.py",
+          "line": 1,
+          "end_line": 9,
+          "label": "search adapter scope"
+        }
+      ]
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "SQLite agent database",
+      "sublabel": "jobs, scores, delivery state, and run log",
+      "icon": "database",
+      "pos": [
+        550,
+        360
+      ],
+      "size": [
+        220,
+        78
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/db.py",
+          "line": 1,
+          "end_line": 40,
+          "label": "SQLite schema and connection"
+        },
+        {
+          "path": "src/ocaml_agent/collect.py",
+          "line": 28,
+          "end_line": 48,
+          "label": "collection run log"
+        }
+      ]
+    },
+    {
+      "id": "score-adapter",
+      "type": "backend",
+      "label": "Python score adapter",
+      "sublabel": "reads rows; persists deterministic scores",
+      "tag": "Python",
+      "icon": "backend",
+      "pos": [
+        525,
+        105
+      ],
+      "size": [
+        220,
+        78
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/score_jobs.py",
+          "line": 17,
+          "end_line": 80,
+          "label": "subprocess and persistence"
+        },
+        {
+          "path": "ocaml-scoring/ocaml_scoring/bin/main.ml",
+          "line": 113,
+          "end_line": 148,
+          "label": "score-mode JSON output"
+        },
+        {
+          "path": "ocaml-scoring/ocaml_scoring/lib/scoring.ml",
+          "line": 1,
+          "end_line": 22,
+          "label": "signal weights"
+        }
+      ]
+    },
+    {
+      "id": "ocaml-engine",
+      "type": "backend",
+      "label": "Compiled OCaml engine",
+      "sublabel": "deterministic scoring, eligibility, and final ranking",
+      "tag": "OCaml",
+      "icon": "backend",
+      "pos": [
+        785,
+        205
+      ],
+      "size": [
+        235,
+        90
+      ],
+      "sources": [
+        {
+          "path": "ocaml-scoring/ocaml_scoring/bin/main.ml",
+          "line": 113,
+          "end_line": 170,
+          "label": "scoring and CLI modes"
+        },
+        {
+          "path": "ocaml-scoring/ocaml_scoring/lib/candidate.ml",
+          "line": 64,
+          "end_line": 107,
+          "label": "eligibility policy"
+        },
+        {
+          "path": "ocaml-scoring/ocaml_scoring/lib/final_ranking.ml",
+          "line": 1,
+          "end_line": 18,
+          "label": "70/30 final formula"
+        }
+      ]
+    },
+    {
+      "id": "candidate-adapter",
+      "type": "backend",
+      "label": "Python candidate adapter",
+      "sublabel": "validates candidate-evaluation JSON",
+      "tag": "Python",
+      "icon": "security",
+      "pos": [
+        1010,
+        105
+      ],
+      "size": [
+        225,
+        78
+      ],
+      "sources": [
+        {
+          "path": "ocaml-scoring/ocaml_scoring/lib/candidate.ml",
+          "line": 64,
+          "end_line": 107,
+          "label": "deterministic eligibility policy"
+        },
+        {
+          "path": "src/ocaml_agent/ocaml_candidates.py",
+          "line": 22,
+          "end_line": 88,
+          "label": "subprocess and JSON validation"
+        },
+        {
+          "path": "src/ocaml_agent/candidates.py",
+          "line": 57,
+          "end_line": 65,
+          "label": "shared policy delegation"
+        }
+      ]
+    },
+    {
+      "id": "llm-evaluator",
+      "type": "backend",
+      "label": "LLM contextual evaluator",
+      "sublabel": "technical/practical fit and classification",
+      "tag": "Python",
+      "icon": "backend",
+      "pos": [
+        1010,
+        360
+      ],
+      "size": [
+        225,
+        78
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/llm_score.py",
+          "line": 16,
+          "end_line": 27,
+          "label": "provider configuration"
+        },
+        {
+          "path": "src/ocaml_agent/llm_score.py",
+          "line": 30,
+          "end_line": 148,
+          "label": "request and response validation"
+        },
+        {
+          "path": "src/ocaml_agent/llm_score.py",
+          "line": 151,
+          "end_line": 255,
+          "label": "eligibility, LLM calls, persistence"
+        }
+      ]
+    },
+    {
+      "id": "llm-api",
+      "type": "external",
+      "label": "Configured LLM endpoint",
+      "sublabel": "Groq or local OmniRoute endpoint",
+      "icon": "cloud",
+      "pos": [
+        1300,
+        105
+      ],
+      "size": [
+        205,
+        68
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/llm_score.py",
+          "line": 16,
+          "end_line": 27,
+          "label": "endpoint selection"
+        }
+      ]
+    },
+    {
+      "id": "ranking-adapter",
+      "type": "backend",
+      "label": "Python ranking adapter",
+      "sublabel": "validates JSON; persists OCaml final scores",
+      "tag": "Python",
+      "icon": "backend",
+      "pos": [
+        785,
+        535
+      ],
+      "size": [
+        240,
+        78
+      ],
+      "sources": [
+        {
+          "path": "ocaml-scoring/ocaml_scoring/lib/final_ranking.ml",
+          "line": 1,
+          "end_line": 18,
+          "label": "70/30 final formula"
+        },
+        {
+          "path": "src/ocaml_agent/ocaml_ranking.py",
+          "line": 21,
+          "end_line": 73,
+          "label": "subprocess and JSON validation"
+        },
+        {
+          "path": "src/ocaml_agent/ranking.py",
+          "line": 13,
+          "end_line": 47,
+          "label": "database orchestration and persistence"
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "type": "backend",
+      "label": "Telegram digest builder",
+      "sublabel": "sends top results; marks strong rows sent",
+      "tag": "Python",
+      "icon": "messagebus",
+      "pos": [
+        1035,
+        535
+      ],
+      "size": [
+        225,
+        78
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/notify.py",
+          "line": 81,
+          "end_line": 148,
+          "label": "select, send, mark sent"
+        }
+      ]
+    },
+    {
+      "id": "telegram-api",
+      "type": "external",
+      "label": "Telegram Bot API",
+      "sublabel": "bot-token message delivery",
+      "icon": "messagebus",
+      "pos": [
+        1300,
+        675
+      ],
+      "size": [
+        175,
+        68
+      ],
+      "sources": [
+        {
+          "path": "src/ocaml_agent/telegram.py",
+          "line": 7,
+          "end_line": 52,
+          "label": "sendMessage client"
+        }
+      ]
+    },
+    {
+      "id": "private-state",
+      "type": "database",
+      "label": "Private state repository",
+      "sublabel": "Git repository holding agent.db between workflow runs",
+      "icon": "database",
+      "pos": [
+        270,
+        535
+      ],
+      "size": [
+        275,
+        78
+      ],
+      "sources": [
+        {
+          "path": ".github/workflows/agent.yml",
+          "line": 20,
+          "end_line": 23,
+          "label": "private-state clone"
+        },
+        {
+          "path": ".github/workflows/agent.yml",
+          "line": 80,
+          "end_line": 88,
+          "label": "database commit and push"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "GitHub Actions runner: OCaml Opportunity Agent pipeline",
+      "wraps": [
+        "cli-dispatcher",
+        "collectors",
+        "sqlite",
+        "score-adapter",
+        "ocaml-engine",
+        "candidate-adapter",
+        "llm-evaluator",
+        "ranking-adapter",
+        "notifications"
+      ],
+      "pad": 34
+    }
+  ],
+  "connections": [
+    {
+      "id": "workflow-runs-dispatcher",
+      "from": "github-actions",
+      "to": "cli-dispatcher",
+      "label": "runs CLI subcommands",
+      "variant": "emphasis"
+    },
+    {
+      "id": "dispatcher-runs-collectors",
+      "from": "cli-dispatcher",
+      "to": "collectors",
+      "label": "collect",
+      "variant": "default"
+    },
+    {
+      "id": "dispatcher-runs-llm",
+      "from": "cli-dispatcher",
+      "to": "llm-evaluator",
+      "label": "score",
+      "variant": "default"
+    },
+    {
+      "id": "dispatcher-runs-ranking",
+      "from": "cli-dispatcher",
+      "to": "ranking-adapter",
+      "label": "rank --write",
+      "variant": "default"
+    },
+    {
+      "id": "dispatcher-runs-notify",
+      "from": "cli-dispatcher",
+      "to": "notifications",
+      "label": "notify",
+      "variant": "default"
+    },
+    {
+      "id": "sources-to-collectors",
+      "from": "public-sources",
+      "to": "collectors",
+      "label": "fetch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "collectors-to-sqlite",
+      "from": "collectors",
+      "to": "sqlite",
+      "label": "deduplicated opportunity records",
+      "variant": "emphasis"
+    },
+    {
+      "id": "restore-private-state",
+      "from": "private-state",
+      "to": "sqlite",
+      "label": "restore agent.db",
+      "variant": "dashed"
+    },
+    {
+      "id": "sqlite-to-score-adapter",
+      "from": "sqlite",
+      "to": "score-adapter",
+      "label": "unscored records",
+      "variant": "emphasis"
+    },
+    {
+      "id": "score-adapter-to-ocaml",
+      "from": "score-adapter",
+      "to": "ocaml-engine",
+      "label": "subprocess: line fields",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ocaml-to-score-adapter",
+      "from": "ocaml-engine",
+      "to": "score-adapter",
+      "label": "JSON score",
+      "variant": "emphasis"
+    },
+    {
+      "id": "score-adapter-to-sqlite",
+      "from": "score-adapter",
+      "to": "sqlite",
+      "label": "persist score",
+      "variant": "emphasis"
+    },
+    {
+      "id": "sqlite-to-llm",
+      "from": "sqlite",
+      "to": "llm-evaluator",
+      "label": "unscored rows and source",
+      "labelAt": [
+        750,
+        480
+      ],
+      "variant": "emphasis"
+    },
+    {
+      "id": "llm-to-candidate-adapter",
+      "from": "llm-evaluator",
+      "to": "candidate-adapter",
+      "label": "candidate record",
+      "variant": "emphasis"
+    },
+    {
+      "id": "candidate-adapter-to-ocaml",
+      "from": "candidate-adapter",
+      "to": "ocaml-engine",
+      "label": "JSON candidate input",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ocaml-to-candidate-adapter",
+      "from": "ocaml-engine",
+      "to": "candidate-adapter",
+      "label": "JSON decision",
+      "variant": "emphasis"
+    },
+    {
+      "id": "candidate-adapter-to-llm",
+      "from": "candidate-adapter",
+      "to": "llm-evaluator",
+      "label": "accepted or rejected",
+      "variant": "emphasis"
+    },
+    {
+      "id": "llm-to-api",
+      "from": "llm-evaluator",
+      "to": "llm-api",
+      "variant": "dashed"
+    },
+    {
+      "id": "llm-to-sqlite",
+      "from": "llm-evaluator",
+      "to": "sqlite",
+      "label": "scores",
+      "variant": "emphasis"
+    },
+    {
+      "id": "sqlite-to-ranking-adapter",
+      "from": "sqlite",
+      "to": "ranking-adapter",
+      "label": "validated LLM scores",
+      "variant": "emphasis"
+    },
+    {
+      "id": "ranking-adapter-to-ocaml",
+      "from": "ranking-adapter",
+      "to": "ocaml-engine",
+      "label": "JSON input / final-score response",
+      "labelAt": [
+        1150,
+        465
+      ],
+      "variant": "emphasis"
+    },
+    {
+      "id": "ranking-adapter-to-sqlite",
+      "from": "ranking-adapter",
+      "to": "sqlite",
+      "label": "persist final score",
+      "variant": "emphasis"
+    },
+    {
+      "id": "sqlite-to-notify",
+      "from": "sqlite",
+      "to": "notifications",
+      "label": "ranked unsent opportunities",
+      "variant": "emphasis"
+    },
+    {
+      "id": "notify-to-telegram",
+      "from": "notifications",
+      "to": "telegram-api",
+      "label": "send digest",
+      "variant": "emphasis"
+    },
+    {
+      "id": "notify-to-sqlite",
+      "from": "notifications",
+      "to": "sqlite",
+      "label": "mark strong rows emailed",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "variant": "default"
+    },
+    {
+      "id": "persist-private-state",
+      "from": "sqlite",
+      "to": "private-state",
+      "label": "commit updated agent.db",
+      "labelAt": [
+        587,
+        627
+      ],
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Collection",
+      "items": [
+        "The collector orchestrator runs ten registered collectors and records successes, failures, and newly discovered item count.",
+        "Jane Street uses JSON discovery, an OCaml text filter, and position-page parsing before storage."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Scoring and ranking",
+      "items": [
+        "The OCaml executable deterministically detects domain signals and totals their weights; the current workflow builds it but does not run the deterministic-score command.",
+        "Candidate eligibility and the final 70% technical + 30% practical score are implemented in OCaml. Python adapters exchange validated JSON with the compiled executable, while Python retains database operations and orchestration."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Automation and delivery",
+      "items": [
+        "The workflow restores and later pushes the database through a private state repository.",
+        "Telegram credentials and the workflow's LLM key are supplied as GitHub Actions secrets."
+      ]
+    }
+  ]
+}
