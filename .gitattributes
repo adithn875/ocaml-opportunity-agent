@@ -1,0 +1,3 @@
+
+# Exclude generated architecture visualization from language statistics
+architecture/ocaml-opportunity-agent.html linguist-vendored
