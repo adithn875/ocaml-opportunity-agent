@@ -15,6 +15,16 @@ def clean_description(description, limit=350):
     return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
+
+def format_score(value, precision=1):
+    if value is None:
+        return "N/A"
+    try:
+        return f"{float(value):.{precision}f}"
+    except (TypeError, ValueError):
+        return "N/A"
+
+
 def build_message(strong_rows, other_rows):
     lines = [
         "🚀 OCaml Opportunity Agent",
@@ -44,8 +54,8 @@ def build_message(strong_rows, other_rows):
             lines.append(f"📍 {location}")
 
         lines.append(
-            f"⭐ Final: {final_score:.1f} | "
-            f"OCaml: {score:.0f} | AI: {llm_score:.0f}"
+            f"⭐ Final: {format_score(final_score)} | "
+            f"OCaml: {format_score(score, 0)} | AI: {format_score(llm_score, 0)}"
         )
 
         description_text = clean_description(description)
@@ -70,7 +80,7 @@ def build_message(strong_rows, other_rows):
             company_text = f" — {company}" if company else ""
 
             lines.append(
-                f"• {title}{company_text} | Final: {final_score:.1f}"
+                f"• {title}{company_text} | Final: {format_score(final_score)}"
             )
     else:
         lines.append("None")
