@@ -1,13 +1,15 @@
+import sqlite3
 import unittest
 
-from ocaml_agent.candidates import decide
+from ocaml_agent.candidates import decide, get_candidates
 
 
-def job(*, title, score, description=None):
+def job(*, title, score, description=None, source=None):
     return {
         "title": title,
         "score": score,
         "description": description,
+        "source": source,
     }
 
 
@@ -73,6 +75,108 @@ class CandidateFilterTests(unittest.TestCase):
         )
 
         self.assertFalse(decision.accepted)
+
+
+    def test_jane_street_listing_with_description_is_accepted(self):
+        decision = decide(
+            job(
+                title="Software Engineer Internship",
+                score=0,
+                description="Build software and solve technical problems.",
+                source="Jane Street",
+            )
+        )
+        self.assertTrue(decision.accepted)
+
+    def test_jane_street_listing_without_description_is_rejected(self):
+        decision = decide(
+            job(title="Front End Software Engineer", score=0, source="Jane Street")
+        )
+        self.assertFalse(decision.accepted)
+
+    def test_ocaml_org_listing_without_description_is_accepted(self):
+        decision = decide(
+            job(title="Cryptography Engineer", score=0, source="OCaml.org jobs")
+        )
+        self.assertTrue(decision.accepted)
+
+    def test_spontaneous_application_is_rejected(self):
+        decision = decide(
+            job(
+                title="Spontaneous Application",
+                score=30,
+                source="OCaml.org jobs",
+            )
+        )
+        self.assertFalse(decision.accepted)
+
+    def test_ocaml_discuss_job_with_description_is_accepted(self):
+        decision = decide(
+            job(
+                title="Research Internship",
+                score=0,
+                description="Work on OCaml and formal verification.",
+                source="OCaml Discuss Jobs",
+            )
+        )
+        self.assertTrue(decision.accepted)
+
+    def test_aggregate_job_list_is_rejected(self):
+        decision = decide(
+            job(
+                title="Awesome Functional Programming Jobs",
+                score=15,
+                description="A list of jobs.",
+                source="OCaml Discuss Jobs",
+            )
+        )
+        self.assertFalse(decision.accepted)
+
+    def test_candidate_query_preserves_source_specific_rules(self):
+        connection = sqlite3.connect(":memory:")
+        connection.execute(
+            """
+            CREATE TABLE seen_items (
+                id INTEGER PRIMARY KEY,
+                title TEXT NOT NULL,
+                company TEXT,
+                score REAL,
+                description TEXT,
+                source TEXT
+            )
+            """
+        )
+        connection.executemany(
+            """
+            INSERT INTO seen_items (id, title, score, description, source)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            [
+                (
+                    1,
+                    "Software Engineer Internship",
+                    0,
+                    "Build software.",
+                    "Jane Street",
+                ),
+                (2, "Cryptography Engineer", 0, None, "OCaml.org jobs"),
+            ],
+        )
+
+        try:
+            candidates = get_candidates(connection)
+        finally:
+            connection.close()
+
+        self.assertEqual([candidate.id for candidate in candidates], [1, 2])
+        self.assertEqual(
+            candidates[0].reason,
+            "jane street listing has a description for LLM review",
+        )
+        self.assertEqual(
+            candidates[1].reason,
+            "OCaml.org Jobs listing eligible for LLM review",
+        )
 
 
 if __name__ == "__main__":

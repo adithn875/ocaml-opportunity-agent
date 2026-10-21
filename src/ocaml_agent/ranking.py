@@ -5,28 +5,9 @@ import argparse
 import sqlite3
 from pathlib import Path
 
-TECHNICAL_WEIGHT = 0.70
-PRACTICALITY_WEIGHT = 0.30
+from .ocaml_ranking import calculate_final_score
+
 DB_PATH = Path("data/agent.db")
-
-
-def calculate_final_score(
-    *,
-    technical_score: float,
-    practicality_score: float,
-) -> float:
-    """Calculate a final score from technical fit and practicality."""
-    for name, score in (
-        ("technical_score", technical_score),
-        ("practicality_score", practicality_score),
-    ):
-        if not 0 <= score <= 100:
-            raise ValueError(f"{name} must be between 0 and 100")
-
-    return (
-        TECHNICAL_WEIGHT * technical_score
-        + PRACTICALITY_WEIGHT * practicality_score
-    )
 
 
 def rank_unscored(connection: sqlite3.Connection, *, dry_run: bool = True) -> int:

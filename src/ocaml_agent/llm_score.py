@@ -1,5 +1,6 @@
 """LLM scoring stage using the local OmniRoute OpenAI-compatible API."""
 
+import argparse
 import json
 import os
 import sqlite3
@@ -7,6 +8,8 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+from .candidates import decide
 
 DB_PATH = Path("data/agent.db")
 
@@ -150,55 +153,76 @@ def main():
     connection.row_factory = sqlite3.Row
 
     try:
-        jobs = connection.execute(
+        rows = connection.execute(
             """
-            SELECT id, title, company, location, description, score
+            SELECT id, title, company, location, description, score, source
             FROM seen_items
-            WHERE id IN (
-                SELECT id
-                FROM seen_items
-                WHERE
-                    score >= 30
-                    AND NULLIF(TRIM(description), '') IS NOT NULL
-                OR
-                    lower(title) LIKE '%ocaml%'
-                    OR lower(title) LIKE '%oxcaml%'
-                    OR lower(title) LIKE '%compiler%'
-                    OR lower(title) LIKE '%compilation%'
-                    OR lower(title) LIKE '%formal method%'
-                    OR lower(title) LIKE '%static analysis%'
-                    OR lower(title) LIKE '%type system%'
-            )
+            WHERE llm_score IS NULL
             ORDER BY score DESC, id
             """
         ).fetchall()
 
-        print(f"LLM scoring {len(jobs)} candidates...")
+        jobs = [job for job in rows if decide(dict(job)).accepted]
+        parser = argparse.ArgumentParser(description="Score eligible OCaml opportunities.")
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="List eligible jobs without calling the LLM or writing to the database.",
+        )
+        args = parser.parse_args()
+
+        print(f"LLM scoring {len(jobs)} eligible candidates...")
+        if args.dry_run:
+            for job in jobs:
+                print(f'{job["id"]}: {job["title"]} [{job["source"]}]')
+            print("Dry run complete; no API calls or database writes performed.")
+            return
 
         for job in jobs:
             try:
-                technical_score, practicality_score, classification, technical_reason, practicality_reason = score_job(job)
-            except urllib.error.HTTPError as http_error:
-                if http_error.code == 429:
-                    print(f'RATE LIMIT {job["id"]}: {job["title"]} - using fallback')
-                    technical_score = int(job["score"] or 0)
-                    practicality_score = 70
-                    classification = "Good Fit"
-                    technical_reason = "Skipped due to rate limiting; deterministic OCaml relevance retained."
-                    practicality_reason = "Neutral fallback due to rate limiting."
-                else:
-                    raise
+                (
+                    technical_score,
+                    practicality_score,
+                    classification,
+                    technical_reason,
+                    practicality_reason,
+                ) = score_job(job)
+            except urllib.error.HTTPError as error:
+                print(
+                    f'SKIP {job["id"]}: {job["title"]} - '
+                    f'HTTP {error.code}; no score saved.'
+                )
+                continue
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                print(
+                    f'SKIP {job["id"]}: {job["title"]} - '
+                    f'network error; no score saved ({error}).'
+                )
+                continue
             except (ValueError, KeyError, TypeError) as error:
                 print(f'RETRY {job["id"]}: {job["title"]} - invalid LLM response')
                 try:
-                    technical_score, practicality_score, classification, technical_reason, practicality_reason = score_job(job)
-                except (ValueError, KeyError, TypeError, urllib.error.HTTPError) as retry_error:
-                    print(f'FALLBACK {job["id"]}: {job["title"]} - using neutral practicality score')
-                    technical_score = int(job["score"] or 0)
-                    practicality_score = 70
-                    classification = "Good Fit"
-                    technical_reason = "LLM response could not be parsed; deterministic OCaml relevance retained."
-                    practicality_reason = "Neutral fallback because the model did not return a valid practicality score."
+                    (
+                        technical_score,
+                        practicality_score,
+                        classification,
+                        technical_reason,
+                        practicality_reason,
+                    ) = score_job(job)
+                except (
+                    ValueError,
+                    KeyError,
+                    TypeError,
+                    urllib.error.HTTPError,
+                    urllib.error.URLError,
+                    TimeoutError,
+                    OSError,
+                ) as retry_error:
+                    print(
+                        f'SKIP {job["id"]}: {job["title"]} - '
+                        f'retry failed; no score saved ({retry_error}).'
+                    )
+                    continue
 
             connection.execute(
                 """
@@ -209,9 +233,17 @@ def main():
                     practicality_score = ?,
                     opportunity_class = ?,
                     practicality_reason = ?
-                WHERE id = ?
+                WHERE id = ? AND llm_score IS NULL
                 """,
-                (technical_score, technical_reason, MODEL, practicality_score, classification, practicality_reason, job["id"]),
+                (
+                    technical_score,
+                    technical_reason,
+                    MODEL,
+                    practicality_score,
+                    classification,
+                    practicality_reason,
+                    job["id"],
+                ),
             )
             connection.commit()
 

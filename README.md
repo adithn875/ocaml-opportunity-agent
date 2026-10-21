@@ -262,6 +262,11 @@ Candidate Filtering
 Inspect the filtered candidate set:
 PYTHONPATH=src .venv/bin/python -m ocaml_agent.candidates
 
+Candidate decisions are made by the compiled OCaml executable, which must be
+built before running candidate inspection or LLM scoring. Python passes each
+stored record (including its source) to the executable and retains database
+access and orchestration.
+
 The filter accepts opportunities that either:
 1. have a sufficiently strong deterministic score and a real source description, or
 2. have an explicitly OCaml-relevant title such as OCaml, compiler, formal methods, static analysis, or type systems.
@@ -270,6 +275,10 @@ It rejects:
 - aggregate job lists
 - weak generic title-only matches
 - weak source-only matches
+
+The OCaml title and source rules use ASCII case-insensitive matching. This is
+sufficient for the current English-language signal vocabulary; it does not
+provide Python's full Unicode `casefold()` equivalence.
 LLM Scoring
 LLM scoring uses the local OmniRoute OpenAI-compatible API.
 Set the API key in your environment:
