@@ -1,4 +1,4 @@
-(lang dune 3.14)
+(lang dune 3.24)
 
 (name ocaml_scoring)
 
@@ -19,7 +19,10 @@
  (name ocaml_scoring)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml)
+ (depends
+  ocaml
+  dune
+  yojson)
  (tags
   ("add topics" "to describe" your project)))
 

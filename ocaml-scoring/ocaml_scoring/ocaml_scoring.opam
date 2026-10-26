@@ -12,6 +12,7 @@ bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "dune" {>= "3.24"}
   "ocaml"
+  "yojson"
   "odoc" {with-doc}
 ]
 build: [
@@ -29,4 +30,3 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/username/reponame.git"
-x-maintenance-intent: ["(latest)"]
