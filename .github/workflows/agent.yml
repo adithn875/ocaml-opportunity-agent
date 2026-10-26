@@ -34,10 +34,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y opam
           opam init --disable-sandboxing -y
-          opam switch create system ocaml-system -y
-          eval "$(opam env --switch=system)"
+          opam switch create ci ocaml-system -y
+          eval "$(opam env --switch=ci)"
+          opam install yojson dune.3.24.0 -y
           cd ocaml-scoring/ocaml_scoring
-          opam install . --deps-only -y
           dune build
 
       - name: Restore agent database
