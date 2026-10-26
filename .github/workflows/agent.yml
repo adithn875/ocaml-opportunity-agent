@@ -29,11 +29,14 @@ jobs:
         with:
           python-version: '3.11'
 
+     
       - name: Set up OCaml and build scorer
+        timeout-minutes: 10
         run: |
           sudo apt-get update
           sudo apt-get install -y opam
-          opam init --disable-sandboxing -y
+          export OPAMYES=1
+          opam init --disable-sandboxing --bare -y
           opam switch create ci ocaml-system -y
           eval "$(opam env --switch=ci)"
           opam install yojson dune.3.24.0 -y
