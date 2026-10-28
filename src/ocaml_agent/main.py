@@ -32,6 +32,7 @@ def main():
         sys.argv = [sys.argv[0], *sys.argv[2:]]
         ranking.main()
     elif command == "notify":
+        sys.argv = [sys.argv[0], *sys.argv[2:]]
         notify.main()
     else:
         print(f"Unknown command: {command}")
