@@ -1,5 +1,7 @@
 import json
+import re
 import sqlite3
+from collections.abc import Mapping
 from pathlib import Path
 
 from scrapling.fetchers import Fetcher
@@ -14,6 +16,118 @@ POSITION_DIRECTORIES_URL = (
 )
 
 DB_PATH = Path("data/agent.db")
+
+
+TITLE_SIGNALS = (
+    r"\bocaml\b",
+    r"\boxcaml\b",
+    r"\bcompilers?\b",
+    r"\bprogramming[- ]languages?\b",
+    r"\b(?:programming[- ]language|language) implementation\b",
+    r"\btype systems?\b",
+    r"\bformal methods?\b",
+    r"\bfunctional programming\b",
+)
+
+# These phrases identify programming-language work in a job overview. They are
+# intentionally more specific than a bare mention of OCaml, which can describe
+# a tool used by an otherwise unrelated team.
+PROGRAMMING_LANGUAGE_SIGNALS = (
+    r"\bcompiler (?:implementation|infrastructure|optimization|optimisation)\b",
+    r"\b(?:implementing|building|developing|optimizing|optimising) "
+    r"(?:a |the )?compiler\b",
+    r"\blanguage implementation\b",
+    r"\bprogramming[- ]language (?:research|implementation|development)\b",
+    r"\btype systems?\b",
+    r"\btype inference\b",
+    r"\b(?:design|implement|build|develop|work on)\b[^.]{0,100}"
+    r"\b(?:typed )?functional programming\b",
+    r"\bpassionate about\b[^.]{0,120}"
+    r"\b(?:typed )?functional programming\b",
+    r"\blanguage tooling\b",
+    r"\bcompiler tooling\b",
+    r"\bcompiler infrastructure\b",
+)
+
+PROGRAM_VERIFICATION_SIGNALS = (
+    r"\bformal methods?\b.*\b(?:program|software|code|language|compiler)\b",
+    r"\bformal verification\b.*\b(?:program|software|code|language|compiler)\b",
+    r"\bprogram verification\b",
+    r"\bverification of (?:programs|software|code)\b",
+)
+
+PROGRAM_ANALYSIS_SIGNALS = (
+    r"\b(?:static|program) analysis\b.*\b(?:program|software|code|language|compiler)\b",
+    r"\b(?:program|software|code|language|compiler)\b.*\b(?:static|program) analysis\b",
+)
+
+OCAML_ENGINEERING_SIGNALS = (
+    r"\b(?:ocaml|oxcaml)\b(?:\W+\w+){0,4}\W+"
+    r"\b(?:software|codebase|libraries?|tooling|tools|systems?)\b",
+    r"\b(?:develop|build|implement|maintain|write|engineer)\w*"
+    r"(?:[^\w.]+\w+){0,6}[^\w.]+\b(?:ocaml|oxcaml)\b",
+)
+
+UNRELATED_TITLE_SIGNALS = (
+    r"\b(?:asic|fpga|physical design|hardware)\b",
+    r"\bnetwork(?:ing)?\b",
+    r"\bwindows\b",
+    r"\b(?:financ(?:e|ing)|accounting)\b",
+    r"\b(?:cybersecurity|security operations)\b",
+    r"\bproduction engineer\b",
+    r"\bquantitative trader\b",
+    r"\blow[- ]latency\b",
+)
+
+
+def _text_field(job, field):
+    """Return a string field, treating malformed values as absent."""
+
+    value = job.get(field)
+    return value if isinstance(value, str) else ""
+
+
+def _matches_any(text, patterns):
+    """Return whether text matches one of the case-insensitive patterns."""
+
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in patterns)
+
+
+def _has_program_analysis_context(title, overview):
+    """Distinguish program analysis from similarly named hardware work."""
+
+    text = f"{title}\n{overview}"
+    return _matches_any(text, PROGRAM_ANALYSIS_SIGNALS)
+
+
+def _has_substantive_overview_relevance(title, overview):
+    """Return whether an overview describes substantive relevant work."""
+
+    programming_language_focus = _matches_any(
+        overview,
+        PROGRAMMING_LANGUAGE_SIGNALS,
+    )
+    verification_focus = _matches_any(
+        overview,
+        PROGRAM_VERIFICATION_SIGNALS,
+    )
+    analysis_focus = _has_program_analysis_context(title, overview)
+
+    if programming_language_focus or verification_focus or analysis_focus:
+        return True
+
+    # A generic title can still be relevant when the role itself explicitly
+    # describes building or maintaining OCaml/OxCaml software.
+    return _matches_any(overview, OCAML_ENGINEERING_SIGNALS)
+
+
+def _has_programming_language_focus(overview):
+    """Return whether an overview goes beyond general OCaml usage."""
+
+    return _matches_any(
+        overview,
+        PROGRAMMING_LANGUAGE_SIGNALS,
+    ) or _matches_any(overview, PROGRAM_VERIFICATION_SIGNALS)
 
 
 def fetch_json(url):
@@ -58,15 +172,41 @@ def discover_jobs():
 
 def is_ocaml_job(job):
     """
-    Find jobs that mention OCaml somewhere in the Jane Street
-    job record.
+    Identify Jane Street roles with direct OCaml or programming-language work.
 
-    This intentionally acts as a broad candidate filter.
-    Milestone 3 can perform more precise relevance scoring.
+    Jane Street's active-position payload uses ``position`` for the title and
+    ``overview`` for the role description. Metadata such as team and category
+    is deliberately ignored: an incidental OCaml mention there does not make a
+    role relevant.
     """
-    searchable_text = json.dumps(job).lower()
+    if not isinstance(job, Mapping):
+        return False
 
-    return "ocaml" in searchable_text
+    title = _text_field(job, "position")
+    overview = "\n".join(
+        text
+        for field in ("overview", "description")
+        if (text := _text_field(job, field))
+    )
+
+    if _matches_any(title, TITLE_SIGNALS):
+        return True
+
+    # "Static analysis" can concern hardware rather than programs, so a title
+    # with that phrase needs an overview that makes the programming context
+    # explicit.
+    if re.search(r"\bstatic analysis\b", title, re.IGNORECASE):
+        return _has_program_analysis_context(title, overview)
+
+    if _matches_any(title, UNRELATED_TITLE_SIGNALS):
+        # An explicit compiler, programming-language, or program-verification
+        # responsibility still wins over a broad job category. A company-wide
+        # note that the team uses OCaml does not.
+        return _has_programming_language_focus(overview) or (
+            _has_program_analysis_context(title, overview)
+        )
+
+    return _has_substantive_overview_relevance(title, overview)
 
 
 def fetch_position(url):

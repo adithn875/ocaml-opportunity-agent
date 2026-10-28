@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import sqlite3
 from typing import Mapping
 
+from .jane_street_collector import is_ocaml_job
 from .ocaml_candidates import evaluate_candidate
 
 
@@ -58,6 +59,22 @@ def decide(job: Mapping[str, object]) -> CandidateDecision:
     """Apply the OCaml deterministic candidate policy to one database record."""
 
     decision = evaluate_candidate(job)
+
+    if job.get("source") == "Jane Street" and not is_ocaml_job(
+        {
+            "position": job.get("title"),
+            "overview": job.get("description"),
+        }
+    ):
+        return CandidateDecision(
+            accepted=False,
+            reason=(
+                "Jane Street listing lacks substantive OCaml or "
+                "programming-language evidence"
+            ),
+            title_signals=tuple(decision["title_signals"]),
+        )
+
     return CandidateDecision(
         accepted=decision["accepted"],
         reason=decision["reason"],

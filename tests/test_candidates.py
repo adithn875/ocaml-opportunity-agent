@@ -77,16 +77,32 @@ class CandidateFilterTests(unittest.TestCase):
         self.assertFalse(decision.accepted)
 
 
-    def test_jane_street_listing_with_description_is_accepted(self):
+    def test_jane_street_listing_with_substantive_evidence_is_accepted(self):
         decision = decide(
             job(
-                title="Software Engineer Internship",
+                title="Compiler Engineer",
                 score=0,
-                description="Build software and solve technical problems.",
+                description="Implement compiler infrastructure for OxCaml.",
                 source="Jane Street",
             )
         )
         self.assertTrue(decision.accepted)
+
+    def test_jane_street_incidental_ocaml_listing_is_rejected(self):
+        decision = decide(
+            job(
+                title="Quantitative Trader",
+                score=60,
+                description=(
+                    "Trade markets. Jane Street uses OCaml as its primary "
+                    "development language."
+                ),
+                source="Jane Street",
+            )
+        )
+
+        self.assertFalse(decision.accepted)
+        self.assertIn("lacks substantive", decision.reason)
 
     def test_jane_street_listing_without_description_is_rejected(self):
         decision = decide(
@@ -154,9 +170,9 @@ class CandidateFilterTests(unittest.TestCase):
             [
                 (
                     1,
-                    "Software Engineer Internship",
+                    "Compiler Engineer",
                     0,
-                    "Build software.",
+                    "Implement compiler infrastructure for OxCaml.",
                     "Jane Street",
                 ),
                 (2, "Cryptography Engineer", 0, None, "OCaml.org jobs"),

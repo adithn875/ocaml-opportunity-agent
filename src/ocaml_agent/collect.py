@@ -11,6 +11,7 @@ from . import tezos_collector
 from . import trustinsoft_collector
 from . import framac_collector
 from . import agent_search_adapter
+from . import fp_launchpad_collector
 
 
 DB_PATH = "data/agent.db"
@@ -92,13 +93,17 @@ def main():
         ("TrustInSoft", lambda: trustinsoft_collector.save_jobs(
             trustinsoft_collector.collect_opportunities()
         )),
+
         ("Frama-C", lambda: framac_collector.save_jobs(
             framac_collector.collect_opportunities()
         )),
+
+        ("FP Launchpad", fp_launchpad_collector.main),
         ("Agent Search", agent_search_adapter.main),
     ]
 
     results = []
+
 
     for name, function in collectors:
         success = run_collector(name, function)

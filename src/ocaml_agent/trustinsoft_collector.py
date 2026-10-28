@@ -61,7 +61,7 @@ def collect_opportunities():
         opportunities.append({
             "title": title,
             "company": "TrustInSoft",
-            "description": " ".join(x.text.split() for x in job_response.css("main p, main li") if x.text.strip()),
+            "description": " ".join(" ".join(str(x.text).split()) for x in job_response.css("main p, main li") if str(x.text).strip()),
             "type": "full-time",
             "location": None,
             "url": url,
