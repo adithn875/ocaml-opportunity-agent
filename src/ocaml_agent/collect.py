@@ -1,3 +1,5 @@
+import os
+import signal
 import time
 import traceback
 from pathlib import Path
@@ -17,6 +19,30 @@ from . import fp_launchpad_collector
 
 
 DB_PATH = Path("data/agent.db")
+COLLECTOR_TIMEOUT_SECONDS = int(os.environ.get("COLLECTOR_TIMEOUT_SECONDS", "180"))
+
+
+class CollectorTimeoutError(TimeoutError):
+    """Raised when one source exceeds the collection time budget."""
+
+
+def run_with_timeout(function, timeout_seconds=COLLECTOR_TIMEOUT_SECONDS):
+    """Run a collector with a Unix signal timeout used by local and Actions runs."""
+    if timeout_seconds <= 0 or not hasattr(signal, "SIGALRM"):
+        return function()
+
+    def timeout_handler(_, __):
+        raise CollectorTimeoutError(
+            f"collector exceeded its {timeout_seconds}-second time limit"
+        )
+
+    previous_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    signal.setitimer(signal.ITIMER_REAL, timeout_seconds)
+    try:
+        return function()
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 def database_count():
@@ -79,7 +105,7 @@ def run_collector(name, function):
     before = database_count()
 
     try:
-        function()
+        run_with_timeout(function)
         after = database_count()
         new_items = after - before
         record_source_run(

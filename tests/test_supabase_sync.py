@@ -3,7 +3,7 @@ from io import BytesIO
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError
 
 from ocaml_agent import db, supabase_sync
@@ -107,4 +107,55 @@ class SupabaseSyncTests(unittest.TestCase):
                 "https://project.supabase.co",
                 "secret",
                 [{"source_url": "https://example.com/jobs/1", "title": "OCaml"}],
+            )
+
+    @patch("ocaml_agent.supabase_sync.time.sleep")
+    @patch("ocaml_agent.supabase_sync.request.urlopen")
+    def test_upload_retries_a_temporary_supabase_failure(self, mock_urlopen, mock_sleep):
+        retry_error = HTTPError(
+            "https://project.supabase.co/rest/v1/jobs",
+            503,
+            "Unavailable",
+            None,
+            BytesIO(b'{"message":"temporarily unavailable"}'),
+        )
+        response = MagicMock()
+        response.__enter__.return_value.status = 201
+        mock_urlopen.side_effect = [retry_error, response]
+
+        supabase_sync.upload_jobs(
+            "https://project.supabase.co",
+            "secret",
+            [{"source_url": "https://example.com/jobs/1", "title": "OCaml"}],
+        )
+
+        self.assertEqual(mock_urlopen.call_count, 2)
+        mock_sleep.assert_called_once_with(1)
+
+    @patch("ocaml_agent.supabase_sync.request.urlopen")
+    def test_schema_validation_lists_all_missing_columns(self, mock_urlopen):
+        def open_request(schema_request, timeout):
+            if "select=source&" in schema_request.full_url:
+                raise HTTPError(
+                    schema_request.full_url,
+                    400,
+                    "Bad Request",
+                    None,
+                    BytesIO(b'{"code":"PGRST204"}'),
+                )
+            response = MagicMock()
+            response.__enter__.return_value.status = 200
+            return response
+
+        mock_urlopen.side_effect = open_request
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "Supabase jobs is missing required columns: source",
+        ):
+            supabase_sync.validate_table_columns(
+                "https://project.supabase.co",
+                "secret",
+                "jobs",
+                ("title", "source", "description"),
             )

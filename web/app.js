@@ -18,6 +18,7 @@ const submissionSection = document.querySelector("#submission");
 const adminSection = document.querySelector("#admin");
 const pendingSubmissions = document.querySelector("#pending-submissions");
 const sourceHealth = document.querySelector("#source-health");
+const LAST_VISIT_KEY = "ocaml-jobs-last-visit";
 
 let client;
 let jobs = [];
@@ -27,6 +28,23 @@ let applicationsByJob = new Map();
 let profile = null;
 let user = null;
 let isAdmin = false;
+let newJobIds = new Set();
+
+function previousVisit() {
+  try {
+    return window.localStorage.getItem(LAST_VISIT_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function recordVisit() {
+  try {
+    window.localStorage.setItem(LAST_VISIT_KEY, new Date().toISOString());
+  } catch {
+    // Browsing without local storage still supports the full job feed.
+  }
+}
 
 function setMessage(text) {
   message.textContent = text;
@@ -117,6 +135,11 @@ function renderJobs() {
       tagElement.textContent = tag;
       tags.append(tagElement);
     }
+    if (newJobIds.has(job.id)) {
+      const freshTag = document.createElement("span");
+      freshTag.textContent = "New";
+      tags.append(freshTag);
+    }
 
     const score = document.createElement("p");
     score.className = "score";
@@ -156,9 +179,20 @@ async function loadJobs() {
     .order("final_score", { ascending: false, nullsFirst: false });
   if (error) return setMessage(`Could not load jobs: ${error.message}`);
   jobs = data;
+  const lastVisit = previousVisit();
+  newJobIds = new Set(
+    lastVisit
+      ? jobs
+        .filter((job) => job.first_seen && job.first_seen > lastVisit)
+        .map((job) => job.id)
+      : [],
+  );
   populateSources();
   renderJobs();
-  setMessage(`${jobs.length} opportunities loaded.`);
+  setMessage(
+    `${jobs.length} opportunities loaded.${newJobIds.size ? ` ${newJobIds.size} new since your last visit.` : ""}`,
+  );
+  recordVisit();
 }
 
 async function loadUserData() {

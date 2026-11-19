@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import time
 from pathlib import Path
 from urllib import error, request
 
@@ -9,6 +10,36 @@ from . import db
 
 
 DB_PATH = Path("data/agent.db")
+MAX_UPLOAD_ATTEMPTS = 3
+RETRYABLE_HTTP_CODES = {408, 429, 500, 502, 503, 504}
+REQUIRED_COLUMNS = {
+    "jobs": (
+        "source_url",
+        "title",
+        "company",
+        "employment_type",
+        "location",
+        "remote",
+        "posted_date",
+        "deadline",
+        "source",
+        "description",
+        "deterministic_score",
+        "llm_score",
+        "final_score",
+        "first_seen",
+    ),
+    "source_runs": (
+        "source_run_key",
+        "source",
+        "started_at",
+        "finished_at",
+        "duration_seconds",
+        "status",
+        "new_items",
+        "error",
+    ),
+}
 
 
 def load_jobs(database_path: Path | str = DB_PATH) -> list[dict]:
@@ -111,16 +142,73 @@ def upload_rows(
         method="POST",
     )
 
-    try:
-        with request.urlopen(upload_request, timeout=30) as response:
-            if response.status not in (200, 201, 204):
-                raise RuntimeError(f"Supabase upload failed with HTTP {response.status}")
-    except error.HTTPError as http_error:
-        response_body = http_error.read().decode("utf-8", errors="replace")
+    for attempt in range(1, MAX_UPLOAD_ATTEMPTS + 1):
+        try:
+            with request.urlopen(upload_request, timeout=30) as response:
+                if response.status not in (200, 201, 204):
+                    raise RuntimeError(f"Supabase upload failed with HTTP {response.status}")
+            return
+        except error.HTTPError as http_error:
+            response_body = http_error.read().decode("utf-8", errors="replace")
+            if http_error.code in RETRYABLE_HTTP_CODES and attempt < MAX_UPLOAD_ATTEMPTS:
+                time.sleep(attempt)
+                continue
+            raise RuntimeError(
+                f"Supabase {table} upload failed with HTTP {http_error.code}: "
+                f"{response_body}"
+            ) from http_error
+        except error.URLError as url_error:
+            if attempt < MAX_UPLOAD_ATTEMPTS:
+                time.sleep(attempt)
+                continue
+            raise RuntimeError(
+                f"Supabase {table} upload failed after {MAX_UPLOAD_ATTEMPTS} attempts: "
+                f"{url_error.reason}"
+            ) from url_error
+
+
+def validate_table_columns(
+    supabase_url: str,
+    service_role_key: str,
+    table: str,
+    columns: tuple[str, ...],
+) -> None:
+    """Fail before an upload when the remote schema lacks required columns."""
+    missing_columns = []
+    for column in columns:
+        endpoint = f"{supabase_url.rstrip('/')}/rest/v1/{table}?select={column}&limit=1"
+        schema_request = request.Request(
+            endpoint,
+            headers={
+                "apikey": service_role_key,
+                "Authorization": f"Bearer {service_role_key}",
+            },
+        )
+        try:
+            with request.urlopen(schema_request, timeout=30):
+                pass
+        except error.HTTPError as http_error:
+            response_body = http_error.read().decode("utf-8", errors="replace")
+            if "PGRST204" in response_body:
+                missing_columns.append(column)
+                continue
+            raise RuntimeError(
+                f"Could not validate Supabase {table} schema (HTTP {http_error.code}): "
+                f"{response_body}"
+            ) from http_error
+
+    if missing_columns:
+        columns_text = ", ".join(missing_columns)
         raise RuntimeError(
-            f"Supabase {table} upload failed with HTTP {http_error.code}: "
-            f"{response_body}"
-        ) from http_error
+            f"Supabase {table} is missing required columns: {columns_text}. "
+            "Apply the repository's Supabase migrations before syncing."
+        )
+
+
+def validate_schema(supabase_url: str, service_role_key: str) -> None:
+    """Check every table used by the agent before making any write."""
+    for table, columns in REQUIRED_COLUMNS.items():
+        validate_table_columns(supabase_url, service_role_key, table, columns)
 
 
 def upload_jobs(supabase_url: str, service_role_key: str, jobs: list[dict]) -> None:
@@ -162,6 +250,7 @@ def main() -> None:
             "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set."
         )
 
+    validate_schema(supabase_url, service_role_key)
     upload_jobs(supabase_url, service_role_key, jobs)
     upload_source_runs(supabase_url, service_role_key, source_runs)
     print(f"Uploaded {len(jobs)} jobs and {len(source_runs)} source runs to Supabase.")

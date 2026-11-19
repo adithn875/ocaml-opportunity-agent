@@ -5,7 +5,8 @@ the Phase 2 web application.
 
 1. Create a free Supabase project.
 2. In the SQL Editor, run `supabase/migrations/001_phase_2.sql`, then
-   `supabase/migrations/002_phase_3.sql` and `supabase/migrations/003_phase_4.sql`.
+   `supabase/migrations/002_phase_3.sql`, `supabase/migrations/003_phase_4.sql`,
+   and `supabase/migrations/004_repair_existing_jobs_schema.sql`.
 3. Copy the project URL and publishable (or legacy anon) key into
    `web/config.js`. Those values are safe to expose in the browser because the
    migration enables Row Level Security.
@@ -21,6 +22,11 @@ The `jobs` table is publicly readable. Profiles, saved jobs, feedback,
 application tracking, and alert preferences are restricted to the signed-in
 user by Row Level Security policies. Employer submissions require sign-in and
 remain pending until reviewed in the Supabase dashboard.
+
+Before every sync, the collector checks that all required `jobs` and
+`source_runs` columns are available through the Supabase Data API. Temporary
+network and 5xx failures are retried up to three times; schema failures name the
+missing columns and stop before any partial upload.
 
 To enable the in-app admin dashboard, first sign in, find your UUID in
 `auth.users` in the Supabase SQL Editor, then run:

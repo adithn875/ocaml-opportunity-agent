@@ -31,6 +31,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
 
      
       - name: Set up OCaml and build scorer
@@ -60,6 +62,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run collection
+        timeout-minutes: 20
         run: |
           source .venv/bin/activate
           PYTHONPATH=src python -m ocaml_agent.main collect
@@ -81,7 +84,14 @@ jobs:
         if: ${{ env.SUPABASE_URL != '' && env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: |
           source .venv/bin/activate
-          PYTHONPATH=src python -m ocaml_agent.supabase_sync
+          set +e
+          PYTHONPATH=src python -m ocaml_agent.supabase_sync 2>&1 | tee sync-output.log
+          sync_status=${PIPESTATUS[0]}
+          set -e
+          if [ "$sync_status" -ne 0 ]; then
+            tail -n 15 sync-output.log > sync-failure.txt
+            exit "$sync_status"
+          fi
 
       - name: Send Telegram notification
         env:
@@ -106,5 +116,9 @@ jobs:
 
       - name: Notify on failure
         if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "Workflow failed. Check logs at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          source .venv/bin/activate
+          PYTHONPATH=src python -c 'from pathlib import Path; from ocaml_agent.telegram import send_message; details = Path("sync-failure.txt").read_text() if Path("sync-failure.txt").exists() else "A pipeline step failed before Supabase sync."; send_message("🚨 OCaml Opportunity Agent failed\n\n" + details[-3000:] + "\n\nLogs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")' || true

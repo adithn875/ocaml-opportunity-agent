@@ -1,4 +1,5 @@
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -7,6 +8,10 @@ from ocaml_agent import collect, db
 
 
 class CollectorRunTests(unittest.TestCase):
+    def test_timeout_stops_a_slow_collector(self):
+        with self.assertRaisesRegex(collect.CollectorTimeoutError, "time limit"):
+            collect.run_with_timeout(lambda: time.sleep(0.05), timeout_seconds=0.01)
+
     def test_successful_collector_records_source_health(self):
         with tempfile.TemporaryDirectory() as directory:
             database_path = Path(directory) / "agent.db"

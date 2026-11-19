@@ -160,6 +160,10 @@ h3 { font-size: 0.92rem; margin: 2.5rem 0 0.75rem; text-transform: uppercase; le
   border: 1px solid var(--line);
   background: #f0ede4;
 }
+.policy-page { max-width: 50rem; }
+.policy-page .wordmark { display: inline-block; margin-bottom: 4rem; }
+.policy-page h1 { font-size: clamp(2.2rem, 5vw, 4rem); }
+.policy-page h2 { margin-top: 2.25rem; }
 .account-section > p:not(.section-kicker) { color: var(--muted); }
 .account-section form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; font-family: system-ui, sans-serif; font-size: 0.86rem; }
 .account-section .wide-field { grid-column: 1 / -1; }
