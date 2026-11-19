@@ -1,0 +1,35 @@
+:root {
+  color: #19221f;
+  background: #f4f7f1;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header, .filters, #alert-form {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+h1 { font-size: clamp(2rem, 7vw, 4rem); margin: 0; }
+h2 { margin: 0; font-size: 1.25rem; }
+.eyebrow, .score { color: #53715d; font-weight: 700; }
+.auth-panel { min-width: 280px; }
+form, label { display: grid; gap: 0.35rem; }
+input, select, button { font: inherit; padding: 0.55rem; }
+button { cursor: pointer; background: #1e6638; color: white; border: 0; border-radius: 4px; }
+.filters { margin: 3rem 0 1rem; align-items: end; }
+.saved-filter { display: flex; align-items: center; }
+#jobs { display: grid; gap: 0.75rem; }
+article, #alerts { background: white; border: 1px solid #d8dfd5; border-radius: 8px; padding: 1rem; }
+article { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; }
+article p { margin: 0; }
+article button { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+#alerts { margin-top: 2rem; }

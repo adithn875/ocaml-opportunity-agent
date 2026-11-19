@@ -242,6 +242,19 @@ Run commands from the repository root with the Python environment activated.
 PYTHONPATH=src python -m ocaml_agent.main collect
 ```
 
+### Upload the public job feed to Supabase
+
+After applying `supabase/migrations/001_phase_2.sql` in the Supabase SQL
+editor, set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` locally or in your
+CI secrets. Then run:
+
+```bash
+PYTHONPATH=src python -m ocaml_agent.supabase_sync
+```
+
+For the free Cloudflare Pages deployment, follow
+[`docs/cloudflare-pages.md`](docs/cloudflare-pages.md).
+
 ### Calculate deterministic scores
 
 ```bash

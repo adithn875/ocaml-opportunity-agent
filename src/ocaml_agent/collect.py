@@ -1,6 +1,8 @@
-import sqlite3
+import time
 import traceback
+from pathlib import Path
 
+from . import db
 from . import collector
 from . import discuss_collector
 from . import hnhiring_collector
@@ -14,11 +16,11 @@ from . import agent_search_adapter
 from . import fp_launchpad_collector
 
 
-DB_PATH = "data/agent.db"
+DB_PATH = Path("data/agent.db")
 
 
 def database_count():
-    con = sqlite3.connect(DB_PATH)
+    con = db.connect(DB_PATH)
     count = con.execute(
         "SELECT COUNT(*) FROM seen_items"
     ).fetchone()[0]
@@ -27,7 +29,7 @@ def database_count():
 
 
 def record_run(sources_ok, sources_failed, new_items, notes):
-    con = sqlite3.connect(DB_PATH)
+    con = db.connect(DB_PATH)
     con.execute(
         """
         INSERT INTO runs (
@@ -49,21 +51,55 @@ def record_run(sources_ok, sources_failed, new_items, notes):
     con.close()
 
 
+def record_source_run(name, status, duration_seconds, new_items, error=None):
+    con = db.connect(DB_PATH)
+    con.execute(
+        """
+        INSERT INTO source_runs (
+            source,
+            duration_seconds,
+            status,
+            new_items,
+            error
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (name, duration_seconds, status, new_items, error),
+    )
+    con.commit()
+    con.close()
+
+
 def run_collector(name, function):
     print("\n" + "=" * 60)
     print(f"RUNNING: {name}")
     print("=" * 60)
 
+    started_at = time.monotonic()
     before = database_count()
 
     try:
         function()
         after = database_count()
+        new_items = after - before
+        record_source_run(
+            name,
+            "ok",
+            time.monotonic() - started_at,
+            new_items,
+        )
 
-        print(f"\n{name}: {after - before} new records")
+        print(f"\n{name}: {new_items} new records")
         return True
 
-    except Exception:
+    except Exception as error:
+        record_source_run(
+            name,
+            "failed",
+            time.monotonic() - started_at,
+            0,
+            str(error),
+        )
         print(f"\n{name}: FAILED")
         traceback.print_exc()
         return False

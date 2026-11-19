@@ -12,6 +12,9 @@ concurrency:
 jobs:
   agent:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       - name: Checkout public repo
@@ -73,6 +76,12 @@ jobs:
         run: |
           source .venv/bin/activate
           PYTHONPATH=src python -m ocaml_agent.main rank --write
+
+      - name: Sync jobs to Supabase
+        if: ${{ env.SUPABASE_URL != '' && env.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=src python -m ocaml_agent.supabase_sync
 
       - name: Send Telegram notification
         env:

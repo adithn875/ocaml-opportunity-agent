@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OCaml Opportunity Agent</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">OCaml opportunity discovery</p>
+        <h1>Find your next role.</h1>
+      </div>
+      <div class="auth-panel">
+        <p id="auth-status">Not signed in</p>
+        <form id="auth-form">
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Sign in</button>
+          <button id="sign-up" type="button">Create account</button>
+          <button id="sign-out" type="button" hidden>Sign out</button>
+        </form>
+      </div>
+    </header>
+
+    <main>
+      <section class="filters" aria-label="Job filters">
+        <label>
+          Search
+          <input id="query" type="search" placeholder="OCaml, compiler, formal methods…" />
+        </label>
+        <label>
+          Source
+          <select id="source-filter"><option value="">All sources</option></select>
+        </label>
+        <label>
+          Minimum score
+          <input id="score-filter" type="number" min="0" max="100" value="0" />
+        </label>
+        <label class="saved-filter">
+          <input id="saved-filter" type="checkbox" /> Saved only
+        </label>
+      </section>
+
+      <p id="message" role="status"></p>
+      <section id="jobs" aria-live="polite"></section>
+
+      <section id="alerts" hidden>
+        <h2>Alert preferences</h2>
+        <form id="alert-form">
+          <label>
+            Minimum score
+            <input id="alert-score" type="number" min="0" max="100" value="0" />
+          </label>
+          <label>
+            Frequency
+            <select id="alert-frequency">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </label>
+          <button type="submit">Save preferences</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="config.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
