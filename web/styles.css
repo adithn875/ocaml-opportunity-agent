@@ -10,7 +10,7 @@ body {
   padding: 2rem;
 }
 
-header, .filters, #alert-form {
+header, .filters, #alert-form, #profile-form, #submission-form {
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -28,8 +28,10 @@ button { cursor: pointer; background: #1e6638; color: white; border: 0; border-r
 .filters { margin: 3rem 0 1rem; align-items: end; }
 .saved-filter { display: flex; align-items: center; }
 #jobs { display: grid; gap: 0.75rem; }
-article, #alerts { background: white; border: 1px solid #d8dfd5; border-radius: 8px; padding: 1rem; }
+article, #alerts, #profile, #submission { background: white; border: 1px solid #d8dfd5; border-radius: 8px; padding: 1rem; }
 article { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; }
 article p { margin: 0; }
 article button { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
-#alerts { margin-top: 2rem; }
+#alerts, #profile, #submission { margin-top: 2rem; }
+.job-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.explanation { color: #3d5a46; font-size: 0.9rem; }

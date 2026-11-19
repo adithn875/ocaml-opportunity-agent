@@ -4,7 +4,8 @@ This project uses Supabase's free PostgreSQL database, Data API, and Auth for
 the Phase 2 web application.
 
 1. Create a free Supabase project.
-2. In the SQL Editor, run `supabase/migrations/001_phase_2.sql`.
+2. In the SQL Editor, run `supabase/migrations/001_phase_2.sql`, then
+   `supabase/migrations/002_phase_3.sql`.
 3. Copy the project URL and publishable (or legacy anon) key into
    `web/config.js`. Those values are safe to expose in the browser because the
    migration enables Row Level Security.
@@ -16,5 +17,7 @@ the Phase 2 web application.
    `docs/cloudflare-pages.md`. In Supabase Auth settings, add the resulting
    `pages.dev` URL as a redirect URL before enabling email confirmation.
 
-The `jobs` table is publicly readable. Saved jobs and alert preferences are
-restricted to the signed-in user by Row Level Security policies.
+The `jobs` table is publicly readable. Profiles, saved jobs, feedback,
+application tracking, and alert preferences are restricted to the signed-in
+user by Row Level Security policies. Employer submissions require sign-in and
+remain pending until reviewed in the Supabase dashboard.

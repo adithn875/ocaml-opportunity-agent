@@ -52,6 +52,33 @@
       <p id="message" role="status"></p>
       <section id="jobs" aria-live="polite"></section>
 
+      <section id="profile" hidden>
+        <h2>Matching profile</h2>
+        <form id="profile-form">
+          <label>
+            Skills, separated by commas
+            <input id="profile-skills" placeholder="OCaml, compiler, formal methods" />
+          </label>
+          <label>
+            Preferred locations, separated by commas
+            <input id="profile-locations" placeholder="Remote, Paris, London" />
+          </label>
+          <label>
+            Work preference
+            <select id="profile-remote">
+              <option value="any">Any</option>
+              <option value="remote">Remote</option>
+              <option value="onsite">On-site</option>
+            </select>
+          </label>
+          <label>
+            Personal minimum score
+            <input id="profile-score" type="number" min="0" max="100" value="0" />
+          </label>
+          <button type="submit">Save profile</button>
+        </form>
+      </section>
+
       <section id="alerts" hidden>
         <h2>Alert preferences</h2>
         <form id="alert-form">
@@ -67,6 +94,33 @@
             </select>
           </label>
           <button type="submit">Save preferences</button>
+        </form>
+      </section>
+
+      <section id="submission" hidden>
+        <h2>Submit an employer opportunity</h2>
+        <form id="submission-form">
+          <label>
+            Role title
+            <input id="submission-title" required />
+          </label>
+          <label>
+            Company
+            <input id="submission-company" required />
+          </label>
+          <label>
+            Application URL
+            <input id="submission-url" type="url" required />
+          </label>
+          <label>
+            Location
+            <input id="submission-location" />
+          </label>
+          <label>
+            Description
+            <textarea id="submission-description" rows="4"></textarea>
+          </label>
+          <button type="submit">Submit for review</button>
         </form>
       </section>
     </main>
