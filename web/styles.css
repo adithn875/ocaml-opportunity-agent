@@ -1,38 +1,207 @@
 :root {
-  color: #19221f;
-  background: #f4f7f1;
-  font-family: system-ui, sans-serif;
+  --paper: #f6f3eb;
+  --paper-deep: #ece7db;
+  --ink: #1f2421;
+  --muted: #68716b;
+  --line: #d5d0c5;
+  --accent: #2d6649;
+  --accent-pale: #e2eee5;
+  --signal: #a54d31;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.45;
 }
 
-body {
-  max-width: 1100px;
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+a {
+  color: inherit;
+  text-decoration-color: #9ca69f;
+  text-underline-offset: 0.16em;
+}
+
+a:hover { color: var(--accent); }
+
+button, input, select, textarea { font: inherit; }
+
+button {
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  padding: 0.45rem 0.7rem;
+}
+
+button:hover { background: var(--accent); border-color: var(--accent); }
+button:disabled { cursor: not-allowed; opacity: 0.45; }
+
+input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: #fffcf5;
+  color: var(--ink);
+  padding: 0.5rem 0.55rem;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid #8ab399;
+  outline-offset: 1px;
+}
+
+.masthead { border-bottom: 1px solid var(--line); }
+
+.topbar, .site-shell, footer {
+  width: min(100% - 2.5rem, 74rem);
   margin: 0 auto;
-  padding: 2rem;
 }
 
-header, .filters, #alert-form, #profile-form, #submission-form {
+.topbar {
+  min-height: 4.25rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 2rem;
+  align-items: center;
+}
+
+.wordmark {
+  color: var(--accent);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+}
+
+nav { display: flex; gap: 1.25rem; font-size: 0.92rem; }
+nav a { text-decoration: none; }
+
+.auth-panel { justify-self: end; font-family: system-ui, sans-serif; font-size: 0.78rem; }
+.auth-panel > p { margin: 0 0 0.35rem; text-align: right; color: var(--muted); }
+.auth-form { display: flex; gap: 0.35rem; align-items: center; }
+.auth-form input { width: 8.25rem; padding: 0.35rem; }
+.auth-form button, .quiet-button { padding: 0.35rem 0.5rem; font-size: 0.78rem; }
+.quiet-button { background: transparent; color: var(--ink); border-color: var(--line); }
+
+.site-shell { padding: 4.75rem 0 5rem; }
+
+.hero { max-width: 49rem; margin-bottom: 3.5rem; }
+.judgement, .section-kicker {
+  margin: 0 0 0.75rem;
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.77rem;
+  letter-spacing: 0.035em;
+}
+
+h1, h2, h3, p { margin-top: 0; }
+h1 { max-width: 46rem; font-size: clamp(2.45rem, 6vw, 5rem); line-height: 0.98; letter-spacing: -0.055em; margin-bottom: 1.25rem; }
+h2 { font-size: 1.45rem; line-height: 1.1; letter-spacing: -0.025em; }
+h3 { font-size: 0.92rem; margin: 2.5rem 0 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.lede { max-width: 43rem; font-size: 1.2rem; line-height: 1.55; }
+.community-note { max-width: 39rem; color: var(--muted); font-size: 0.94rem; }
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(15rem, 2fr) repeat(2, minmax(8rem, 1fr)) auto;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--line);
+  font-family: system-ui, sans-serif;
+  font-size: 0.82rem;
+}
+
+.filters label, .account-section label { display: grid; gap: 0.33rem; }
+.filters label > span { color: var(--muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.045em; }
+.saved-filter { display: flex !important; gap: 0.4rem !important; align-items: center; align-self: end; padding: 0.55rem 0; white-space: nowrap; }
+.saved-filter input { width: auto; }
+
+.feed-heading {
   display: flex;
-  gap: 1rem;
   justify-content: space-between;
-  align-items: end;
-  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 1.3rem 0 0.5rem;
+}
+.feed-heading p { margin: 0; }
+#message { color: var(--muted); font-family: system-ui, sans-serif; font-size: 0.8rem; }
+
+#jobs { border-top: 1px solid var(--line); }
+
+.job-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem 2rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--line);
 }
 
-h1 { font-size: clamp(2rem, 7vw, 4rem); margin: 0; }
-h2 { margin: 0; font-size: 1.25rem; }
-.eyebrow, .score { color: #53715d; font-weight: 700; }
-.auth-panel { min-width: 280px; }
-form, label { display: grid; gap: 0.35rem; }
-input, select, button { font: inherit; padding: 0.55rem; }
-button { cursor: pointer; background: #1e6638; color: white; border: 0; border-radius: 4px; }
-.filters { margin: 3rem 0 1rem; align-items: end; }
-.saved-filter { display: flex; align-items: center; }
-#jobs { display: grid; gap: 0.75rem; }
-article, #alerts, #profile, #submission, #admin { background: white; border: 1px solid #d8dfd5; border-radius: 8px; padding: 1rem; }
-article { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; }
-article p { margin: 0; }
-article button { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
-#alerts, #profile, #submission, #admin { margin-top: 2rem; }
-.job-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-.explanation { color: #3d5a46; font-size: 0.9rem; }
-.admin-row { border-top: 1px solid #d8dfd5; padding: 0.75rem 0; }
+.job-company { color: var(--accent); font-family: system-ui, sans-serif; font-size: 0.8rem; font-weight: 700; }
+.job-card h2 { margin: 0; font-size: clamp(1.2rem, 2.5vw, 1.7rem); }
+.job-card h2 a { text-decoration-thickness: 1px; }
+.job-meta { margin: 0.2rem 0; color: var(--muted); font-family: system-ui, sans-serif; font-size: 0.86rem; }
+.job-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.65rem 0; }
+.job-tags span { border: 1px solid #b9c7b7; color: #376045; padding: 0.12rem 0.38rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.71rem; }
+.score { margin: 0; color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; }
+.explanation { grid-column: 1; margin: 0; color: var(--muted); font-size: 0.86rem; }
+.job-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; margin-top: 0.45rem; }
+.job-actions button, .job-actions select { width: auto; padding: 0.32rem 0.5rem; font-family: system-ui, sans-serif; font-size: 0.77rem; }
+.job-actions button:nth-child(3) { color: var(--signal); background: transparent; border-color: #d8b2a6; }
+
+.account-section {
+  margin-top: 4rem;
+  max-width: 55rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  background: #f0ede4;
+}
+.account-section > p:not(.section-kicker) { color: var(--muted); }
+.account-section form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; font-family: system-ui, sans-serif; font-size: 0.86rem; }
+.account-section .wide-field { grid-column: 1 / -1; }
+.account-section form button { width: fit-content; }
+.admin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; border-top: 1px solid var(--line); padding: 0.8rem 0; font-family: system-ui, sans-serif; font-size: 0.84rem; }
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--line);
+  padding: 1.1rem 0 2rem;
+  color: var(--muted);
+  font-family: system-ui, sans-serif;
+  font-size: 0.77rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: 1fr auto; gap: 0.75rem; padding: 0.75rem 0; }
+  nav { grid-column: 1 / -1; grid-row: 2; }
+  .auth-panel { grid-column: 1 / -1; grid-row: 3; justify-self: stretch; }
+  .auth-panel > p { text-align: left; }
+  .auth-form { flex-wrap: wrap; }
+  .auth-form input { flex: 1 1 9rem; }
+  .site-shell { padding-top: 3.25rem; }
+  .filters { grid-template-columns: 1fr 1fr; }
+  .search-field { grid-column: 1 / -1; }
+  .job-card { grid-template-columns: 1fr; }
+  .explanation { grid-column: 1; }
+  .account-section form { grid-template-columns: 1fr; }
+  .account-section .wide-field { grid-column: auto; }
+  footer { display: grid; }
+}

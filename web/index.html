@@ -3,57 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OCaml Opportunity Agent</title>
+    <meta name="theme-color" content="#f6f3eb" />
+    <title>OCaml Jobs — compilers, languages, and formal methods</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header>
-      <div>
-        <p class="eyebrow">OCaml opportunity discovery</p>
-        <h1>Find your next role.</h1>
-      </div>
-      <div class="auth-panel">
-        <p id="auth-status">Not signed in</p>
-        <form id="auth-form">
-          <label>
-            Email
-            <input id="email" type="email" autocomplete="email" required />
-          </label>
-          <label>
-            Password
-            <input id="password" type="password" autocomplete="current-password" required />
-          </label>
-          <button type="submit">Sign in</button>
-          <button id="sign-up" type="button">Create account</button>
-          <button id="sign-out" type="button" hidden>Sign out</button>
-        </form>
+    <header class="masthead">
+      <div class="topbar">
+        <a class="wordmark" href="#top" aria-label="OCaml Jobs home">OCaml Jobs</a>
+        <nav aria-label="Site links">
+          <a href="#jobs">Opportunities</a>
+          <a href="#submission">Submit a role</a>
+        </nav>
+        <div class="auth-panel">
+          <p id="auth-status">Not signed in</p>
+          <form id="auth-form" class="auth-form">
+            <label class="visually-hidden" for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" placeholder="Email" required />
+            <label class="visually-hidden" for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="Password" required />
+            <button type="submit">Sign in</button>
+            <button id="sign-up" type="button" class="quiet-button">Create account</button>
+          </form>
+          <button id="sign-out" type="button" class="quiet-button" hidden>Sign out</button>
+        </div>
       </div>
     </header>
 
-    <main>
+    <main id="top" class="site-shell">
+      <section class="hero" aria-labelledby="page-title">
+        <p class="judgement">Γ ⊢ you : OCaml ∨ compilers ∨ formal methods</p>
+        <h1 id="page-title">Jobs in OCaml and programming languages</h1>
+        <p class="lede">
+          Roles in compilers, type systems, static analysis, formal verification,
+          and the practical work around them. Each listing keeps its original source
+          close at hand.
+        </p>
+        <p class="community-note">
+          Maintained from community posts, employer pages, and research opportunities.
+          Sign in to save roles, tune your matching profile, or submit an opening.
+        </p>
+      </section>
+
       <section class="filters" aria-label="Job filters">
-        <label>
-          Search
+        <label class="search-field">
+          <span>Search company, role, or topic</span>
           <input id="query" type="search" placeholder="OCaml, compiler, formal methods…" />
         </label>
         <label>
-          Source
+          <span>Source</span>
           <select id="source-filter"><option value="">All sources</option></select>
         </label>
         <label>
-          Minimum score
+          <span>Minimum match</span>
           <input id="score-filter" type="number" min="0" max="100" value="0" />
         </label>
         <label class="saved-filter">
-          <input id="saved-filter" type="checkbox" /> Saved only
+          <input id="saved-filter" type="checkbox" />
+          Saved roles only
         </label>
       </section>
 
-      <p id="message" role="status"></p>
+      <div class="feed-heading">
+        <p class="section-kicker">Live opportunity index</p>
+        <p id="message" role="status"></p>
+      </div>
       <section id="jobs" aria-live="polite"></section>
 
-      <section id="profile" hidden>
-        <h2>Matching profile</h2>
+      <section id="profile" class="account-section" hidden>
+        <p class="section-kicker">Personal matching</p>
+        <h2>Tell the index what matters to you</h2>
         <form id="profile-form">
           <label>
             Skills, separated by commas
@@ -79,8 +98,9 @@
         </form>
       </section>
 
-      <section id="alerts" hidden>
-        <h2>Alert preferences</h2>
+      <section id="alerts" class="account-section" hidden>
+        <p class="section-kicker">Alerts</p>
+        <h2>Get only the roles worth your attention</h2>
         <form id="alert-form">
           <label>
             Minimum score
@@ -97,8 +117,10 @@
         </form>
       </section>
 
-      <section id="submission" hidden>
+      <section id="submission" class="account-section" hidden>
+        <p class="section-kicker">Community contribution</p>
         <h2>Submit an employer opportunity</h2>
+        <p>Every submission is reviewed before it appears in the public index.</p>
         <form id="submission-form">
           <label>
             Role title
@@ -116,7 +138,7 @@
             Location
             <input id="submission-location" />
           </label>
-          <label>
+          <label class="wide-field">
             Description
             <textarea id="submission-description" rows="4"></textarea>
           </label>
@@ -124,14 +146,20 @@
         </form>
       </section>
 
-      <section id="admin" hidden>
-        <h2>Admin dashboard</h2>
+      <section id="admin" class="account-section" hidden>
+        <p class="section-kicker">Administration</p>
+        <h2>Review queue and source health</h2>
         <h3>Pending employer submissions</h3>
         <div id="pending-submissions"></div>
         <h3>Source health</h3>
         <div id="source-health"></div>
       </section>
     </main>
+
+    <footer>
+      <span>OCaml Jobs</span>
+      <span>Roles are linked to their original source.</span>
+    </footer>
 
     <script src="config.js"></script>
     <script type="module" src="app.js"></script>

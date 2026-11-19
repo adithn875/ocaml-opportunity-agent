@@ -92,6 +92,10 @@ function renderJobs() {
   for (const job of matches) {
     const match = personalized(job);
     const article = document.createElement("article");
+    article.className = "job-card";
+    const company = document.createElement("p");
+    company.className = "job-company";
+    company.textContent = job.company || job.source || "Opportunity";
     const title = document.createElement("h2");
     const link = document.createElement("a");
     link.href = job.source_url;
@@ -101,9 +105,18 @@ function renderJobs() {
     title.append(link);
 
     const details = document.createElement("p");
+    details.className = "job-meta";
     details.textContent = [job.company, job.location, job.source]
       .filter(Boolean)
       .join(" · ");
+
+    const tags = document.createElement("div");
+    tags.className = "job-tags";
+    for (const tag of [job.employment_type, job.remote, job.source].filter(Boolean)) {
+      const tagElement = document.createElement("span");
+      tagElement.textContent = tag;
+      tags.append(tagElement);
+    }
 
     const score = document.createElement("p");
     score.className = "score";
@@ -123,7 +136,7 @@ function renderJobs() {
       applicationSelect(job.id),
     );
 
-    article.append(title, details, score, explanation, actions);
+    article.append(company, title, details, tags, score, explanation, actions);
     jobsElement.append(article);
   }
 }
