@@ -1,8 +1,10 @@
 import json
+from io import BytesIO
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from ocaml_agent import db, supabase_sync
 
@@ -86,3 +88,23 @@ class SupabaseSyncTests(unittest.TestCase):
             upload_request.full_url,
             "https://project.supabase.co/rest/v1/source_runs?on_conflict=source_run_key",
         )
+
+    @patch("ocaml_agent.supabase_sync.request.urlopen")
+    def test_upload_error_includes_the_supabase_response_body(self, mock_urlopen):
+        mock_urlopen.side_effect = HTTPError(
+            "https://project.supabase.co/rest/v1/jobs",
+            400,
+            "Bad Request",
+            None,
+            BytesIO(b'{"message":"column jobs.deadline does not exist"}'),
+        )
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "column jobs.deadline does not exist",
+        ):
+            supabase_sync.upload_jobs(
+                "https://project.supabase.co",
+                "secret",
+                [{"source_url": "https://example.com/jobs/1", "title": "OCaml"}],
+            )

@@ -3,7 +3,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from urllib import request
+from urllib import error, request
 
 from . import db
 
@@ -111,9 +111,16 @@ def upload_rows(
         method="POST",
     )
 
-    with request.urlopen(upload_request, timeout=30) as response:
-        if response.status not in (200, 201, 204):
-            raise RuntimeError(f"Supabase upload failed with HTTP {response.status}")
+    try:
+        with request.urlopen(upload_request, timeout=30) as response:
+            if response.status not in (200, 201, 204):
+                raise RuntimeError(f"Supabase upload failed with HTTP {response.status}")
+    except error.HTTPError as http_error:
+        response_body = http_error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Supabase {table} upload failed with HTTP {http_error.code}: "
+            f"{response_body}"
+        ) from http_error
 
 
 def upload_jobs(supabase_url: str, service_role_key: str, jobs: list[dict]) -> None:
