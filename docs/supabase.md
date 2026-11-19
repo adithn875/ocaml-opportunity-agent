@@ -5,7 +5,7 @@ the Phase 2 web application.
 
 1. Create a free Supabase project.
 2. In the SQL Editor, run `supabase/migrations/001_phase_2.sql`, then
-   `supabase/migrations/002_phase_3.sql`.
+   `supabase/migrations/002_phase_3.sql` and `supabase/migrations/003_phase_4.sql`.
 3. Copy the project URL and publishable (or legacy anon) key into
    `web/config.js`. Those values are safe to expose in the browser because the
    migration enables Row Level Security.
@@ -21,3 +21,10 @@ The `jobs` table is publicly readable. Profiles, saved jobs, feedback,
 application tracking, and alert preferences are restricted to the signed-in
 user by Row Level Security policies. Employer submissions require sign-in and
 remain pending until reviewed in the Supabase dashboard.
+
+To enable the in-app admin dashboard, first sign in, find your UUID in
+`auth.users` in the Supabase SQL Editor, then run:
+
+```sql
+insert into public.app_admins (user_id) values ('your-user-uuid');
+```

@@ -15,6 +15,9 @@ const signOutButton = document.querySelector("#sign-out");
 const alerts = document.querySelector("#alerts");
 const profileSection = document.querySelector("#profile");
 const submissionSection = document.querySelector("#submission");
+const adminSection = document.querySelector("#admin");
+const pendingSubmissions = document.querySelector("#pending-submissions");
+const sourceHealth = document.querySelector("#source-health");
 
 let client;
 let jobs = [];
@@ -23,6 +26,7 @@ let feedbackByJob = new Map();
 let applicationsByJob = new Map();
 let profile = null;
 let user = null;
+let isAdmin = false;
 
 function setMessage(text) {
   message.textContent = text;
@@ -221,6 +225,79 @@ async function loadAlertPreferences() {
   }
 }
 
+function renderAdminRows(container, rows, emptyText, renderRow) {
+  container.replaceChildren();
+  if (!rows.length) {
+    container.textContent = emptyText;
+    return;
+  }
+  for (const row of rows) container.append(renderRow(row));
+}
+
+async function updateSubmission(id, status) {
+  const { error } = await client
+    .from("employer_submissions")
+    .update({ status })
+    .eq("id", id);
+  if (error) return setMessage(`Could not review submission: ${error.message}`);
+  await loadAdminDashboard();
+}
+
+async function loadAdminDashboard() {
+  isAdmin = false;
+  adminSection.hidden = true;
+  if (!user) return;
+
+  const { data: admin, error: adminError } = await client.rpc("is_admin");
+  if (adminError) return setMessage(`Could not check admin access: ${adminError.message}`);
+  isAdmin = Boolean(admin);
+  if (!isAdmin) return;
+
+  const [submissions, runs] = await Promise.all([
+    client
+      .from("employer_submissions")
+      .select("id, title, company, source_url, location, created_at")
+      .eq("status", "pending")
+      .order("created_at"),
+    client
+      .from("source_runs")
+      .select("source, started_at, status, new_items, error")
+      .order("started_at", { ascending: false })
+      .limit(50),
+  ]);
+  const failed = [submissions, runs].find((result) => result.error);
+  if (failed) return setMessage(`Could not load admin data: ${failed.error.message}`);
+
+  renderAdminRows(
+    pendingSubmissions,
+    submissions.data,
+    "No pending submissions.",
+    (submission) => {
+      const row = document.createElement("div");
+      row.className = "admin-row";
+      const link = document.createElement("a");
+      link.href = submission.source_url;
+      link.target = "_blank";
+      link.rel = "noreferrer";
+      link.textContent = `${submission.title} — ${submission.company}`;
+      row.append(link, document.createTextNode(` · ${submission.location || "No location"} `));
+      row.append(
+        actionButton("Approve", false, () => updateSubmission(submission.id, "approved")),
+        actionButton("Reject", false, () => updateSubmission(submission.id, "rejected")),
+      );
+      return row;
+    },
+  );
+
+  renderAdminRows(sourceHealth, runs.data, "No source runs yet.", (run) => {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    row.textContent = `${run.source}: ${run.status.toUpperCase()} · ${run.new_items} new · ${run.started_at}${run.error ? ` · ${run.error}` : ""}`;
+    return row;
+  });
+  adminSection.hidden = false;
+}
+
 async function updateSession(session) {
   user = session?.user ?? null;
   authStatus.textContent = user ? `Signed in as ${user.email}` : "Not signed in";
@@ -230,6 +307,7 @@ async function updateSession(session) {
   profileSection.hidden = !user;
   submissionSection.hidden = !user;
   await Promise.all([loadUserData(), loadAlertPreferences()]);
+  await loadAdminDashboard();
   renderJobs();
 }
 

@@ -56,10 +56,49 @@ def load_jobs(database_path: Path | str = DB_PATH) -> list[dict]:
     return [dict(zip(fields, row)) for row in rows]
 
 
-def upload_jobs(supabase_url: str, service_role_key: str, jobs: list[dict]) -> None:
-    """Upsert jobs using a server-only Supabase service-role key."""
-    endpoint = f"{supabase_url.rstrip('/')}/rest/v1/jobs?on_conflict=source_url"
-    payload = json.dumps(jobs).encode("utf-8")
+def load_source_runs(database_path: Path | str = DB_PATH) -> list[dict]:
+    """Return collector health records in the format expected by Supabase."""
+    with db.connect(database_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, source, started_at, finished_at, duration_seconds,
+                   status, new_items, error
+            FROM source_runs
+            ORDER BY id
+            """
+        ).fetchall()
+
+    return [
+        {
+            "source_run_key": f"local:{run_id}",
+            "source": source,
+            "started_at": started_at,
+            "finished_at": finished_at,
+            "duration_seconds": duration_seconds,
+            "status": status,
+            "new_items": new_items,
+            "error": error,
+        }
+        for run_id, source, started_at, finished_at, duration_seconds, status, new_items, error in rows
+    ]
+
+
+def upload_rows(
+    supabase_url: str,
+    service_role_key: str,
+    table: str,
+    conflict_column: str,
+    rows: list[dict],
+) -> None:
+    """Upsert a set of public records using a server-only service-role key."""
+    if not rows:
+        return
+
+    endpoint = (
+        f"{supabase_url.rstrip('/')}/rest/v1/{table}"
+        f"?on_conflict={conflict_column}"
+    )
+    payload = json.dumps(rows).encode("utf-8")
     upload_request = request.Request(
         endpoint,
         data=payload,
@@ -77,6 +116,26 @@ def upload_jobs(supabase_url: str, service_role_key: str, jobs: list[dict]) -> N
             raise RuntimeError(f"Supabase upload failed with HTTP {response.status}")
 
 
+def upload_jobs(supabase_url: str, service_role_key: str, jobs: list[dict]) -> None:
+    """Upsert jobs using a server-only Supabase service-role key."""
+    upload_rows(supabase_url, service_role_key, "jobs", "source_url", jobs)
+
+
+def upload_source_runs(
+    supabase_url: str,
+    service_role_key: str,
+    source_runs: list[dict],
+) -> None:
+    """Upsert source health records using a server-only service-role key."""
+    upload_rows(
+        supabase_url,
+        service_role_key,
+        "source_runs",
+        "source_run_key",
+        source_runs,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Upload collected jobs to Supabase.")
     parser.add_argument("--db", type=Path, default=DB_PATH)
@@ -84,8 +143,9 @@ def main() -> None:
     args = parser.parse_args()
 
     jobs = load_jobs(args.db)
+    source_runs = load_source_runs(args.db)
     if args.dry_run:
-        print(f"Would upload {len(jobs)} jobs.")
+        print(f"Would upload {len(jobs)} jobs and {len(source_runs)} source runs.")
         return
 
     supabase_url = os.environ.get("SUPABASE_URL")
@@ -96,7 +156,8 @@ def main() -> None:
         )
 
     upload_jobs(supabase_url, service_role_key, jobs)
-    print(f"Uploaded {len(jobs)} jobs to Supabase.")
+    upload_source_runs(supabase_url, service_role_key, source_runs)
+    print(f"Uploaded {len(jobs)} jobs and {len(source_runs)} source runs to Supabase.")
 
 
 if __name__ == "__main__":
