@@ -28,10 +28,17 @@ class DatabaseMigrationTests(unittest.TestCase):
                     WHERE type = 'table' AND name = 'source_runs'
                     """
                 ).fetchone()
+                telegram_cursor_exists = connection.execute(
+                    """
+                    SELECT 1 FROM sqlite_master
+                    WHERE type = 'table' AND name = 'telegram_update_cursor'
+                    """
+                ).fetchone()
 
         self.assertTrue(set(db.SCORING_COLUMNS).issubset(columns))
-        self.assertEqual(versions, [1, 2, 3])
+        self.assertEqual(versions, [1, 2, 3, 4])
         self.assertIsNotNone(source_runs_exists)
+        self.assertIsNotNone(telegram_cursor_exists)
 
     def test_connect_upgrades_a_legacy_database(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -7,9 +7,8 @@ import urllib.request
 TELEGRAM_API = "https://api.telegram.org"
 
 
-def send_message(text: str) -> None:
+def send_message_to_chat(chat_id: str | int, text: str) -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
-    chat_id = os.environ["TELEGRAM_CHAT_ID"]
 
     url = f"{TELEGRAM_API}/bot{token}/sendMessage"
     data = urllib.parse.urlencode({
@@ -25,6 +24,10 @@ def send_message(text: str) -> None:
 
     if not result.get("ok"):
         raise RuntimeError(f"Telegram API error: {result}")
+
+
+def send_message(text: str) -> None:
+    send_message_to_chat(os.environ["TELEGRAM_CHAT_ID"], text)
 
 
 def send_long_message(text: str, max_length: int = 4000) -> None:
@@ -50,3 +53,22 @@ def send_long_message(text: str, max_length: int = 4000) -> None:
 
     for chunk in chunks:
         send_message(chunk)
+
+
+def send_long_message_to_chat(chat_id: str | int, text: str, max_length: int = 4000) -> None:
+    """Deliver a long message to one opted-in user without sharing their chat ID."""
+    if len(text) <= max_length:
+        send_message_to_chat(chat_id, text)
+        return
+
+    current = ""
+    for line in text.splitlines():
+        addition = line if not current else "\n" + line
+        if len(current) + len(addition) > max_length:
+            if current:
+                send_message_to_chat(chat_id, current)
+            current = line
+        else:
+            current += addition
+    if current:
+        send_message_to_chat(chat_id, current)

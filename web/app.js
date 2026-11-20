@@ -18,6 +18,9 @@ const submissionSection = document.querySelector("#submission");
 const adminSection = document.querySelector("#admin");
 const pendingSubmissions = document.querySelector("#pending-submissions");
 const sourceHealth = document.querySelector("#source-health");
+const telegramStatus = document.querySelector("#telegram-status");
+const connectTelegramButton = document.querySelector("#connect-telegram");
+const disconnectTelegramButton = document.querySelector("#disconnect-telegram");
 const LAST_VISIT_KEY = "ocaml-jobs-last-visit";
 
 let client;
@@ -29,6 +32,7 @@ let profile = null;
 let user = null;
 let isAdmin = false;
 let newJobIds = new Set();
+let telegramSubscription = null;
 
 function previousVisit() {
   try {
@@ -272,6 +276,56 @@ async function loadAlertPreferences() {
   }
 }
 
+async function loadTelegramSubscription() {
+  telegramSubscription = null;
+  if (!user) return;
+  const { data, error } = await client
+    .from("telegram_subscriptions")
+    .select("linked_at")
+    .maybeSingle();
+  if (error) {
+    telegramStatus.textContent = "Telegram alerts are not configured yet.";
+    return;
+  }
+  telegramSubscription = data;
+  connectTelegramButton.hidden = Boolean(data);
+  disconnectTelegramButton.hidden = !data;
+  telegramStatus.textContent = data
+    ? `Telegram connected on ${new Date(data.linked_at).toLocaleDateString()}.`
+    : "Connect Telegram to receive newly matched roles.";
+}
+
+async function connectTelegram() {
+  const botUsername = config?.telegramBotUsername;
+  if (!botUsername) {
+    setMessage("Telegram delivery is not configured yet. Please try again later.");
+    return;
+  }
+  await client.from("telegram_link_tokens").delete().eq("user_id", user.id);
+  const { data, error } = await client
+    .from("telegram_link_tokens")
+    .insert({ user_id: user.id })
+    .select("token")
+    .single();
+  if (error) return setMessage(`Could not start Telegram linking: ${error.message}`);
+  window.open(
+    `https://t.me/${botUsername}?start=ocamljobs_${data.token}`,
+    "_blank",
+    "noopener",
+  );
+  telegramStatus.textContent = "Press Start in Telegram. Linking expires in 24 hours.";
+}
+
+async function disconnectTelegram() {
+  const { error } = await client
+    .from("telegram_subscriptions")
+    .delete()
+    .eq("user_id", user.id);
+  if (error) return setMessage(`Could not disconnect Telegram: ${error.message}`);
+  await loadTelegramSubscription();
+  setMessage("Telegram disconnected.");
+}
+
 function renderAdminRows(container, rows, emptyText, renderRow) {
   container.replaceChildren();
   if (!rows.length) {
@@ -353,7 +407,7 @@ async function updateSession(session) {
   alerts.hidden = !user;
   profileSection.hidden = !user;
   submissionSection.hidden = !user;
-  await Promise.all([loadUserData(), loadAlertPreferences()]);
+  await Promise.all([loadUserData(), loadAlertPreferences(), loadTelegramSubscription()]);
   await loadAdminDashboard();
   renderJobs();
 }
@@ -402,6 +456,9 @@ document.querySelector("#alert-form").addEventListener("submit", async (event) =
   });
   setMessage(error ? error.message : "Alert preferences saved.");
 });
+
+connectTelegramButton.addEventListener("click", connectTelegram);
+disconnectTelegramButton.addEventListener("click", disconnectTelegram);
 
 document.querySelector("#submission-form").addEventListener("submit", async (event) => {
   event.preventDefault();

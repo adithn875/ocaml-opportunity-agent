@@ -58,6 +58,13 @@ CREATE INDEX IF NOT EXISTS idx_source_runs_source_started
     ON source_runs(source, started_at DESC);
 """
 
+TELEGRAM_ALERTS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS telegram_update_cursor (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    last_update_id INTEGER NOT NULL DEFAULT 0
+);
+"""
+
 # Kept for collectors and tests that need an idempotent complete schema script.
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS seen_items (
@@ -117,10 +124,15 @@ def _add_source_runs(connection: sqlite3.Connection) -> None:
     connection.executescript(SOURCE_RUNS_SCHEMA)
 
 
+def _add_telegram_alert_state(connection: sqlite3.Connection) -> None:
+    connection.executescript(TELEGRAM_ALERTS_SCHEMA)
+
+
 MIGRATIONS = (
     _apply_initial_schema,
     _add_scoring_columns,
     _add_source_runs,
+    _add_telegram_alert_state,
 )
 
 

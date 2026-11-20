@@ -93,6 +93,14 @@ jobs:
             exit "$sync_status"
           fi
 
+      - name: Deliver opted-in Telegram alerts
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=src python -m ocaml_agent.user_alerts
+
       - name: Send Telegram notification
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
