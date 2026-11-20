@@ -18,6 +18,11 @@ const submissionSection = document.querySelector("#submission");
 const adminSection = document.querySelector("#admin");
 const pendingSubmissions = document.querySelector("#pending-submissions");
 const sourceHealth = document.querySelector("#source-health");
+const notificationSection = document.querySelector("#notifications");
+const notificationSummary = document.querySelector("#notification-summary");
+const notificationList = document.querySelector("#notification-list");
+const enablePushButton = document.querySelector("#enable-push");
+const pushStatus = document.querySelector("#push-status");
 const telegramStatus = document.querySelector("#telegram-status");
 const connectTelegramButton = document.querySelector("#connect-telegram");
 const disconnectTelegramButton = document.querySelector("#disconnect-telegram");
@@ -33,6 +38,7 @@ let user = null;
 let isAdmin = false;
 let newJobIds = new Set();
 let telegramSubscription = null;
+let notifications = [];
 
 function previousVisit() {
   try {
@@ -48,6 +54,14 @@ function recordVisit() {
   } catch {
     // Browsing without local storage still supports the full job feed.
   }
+}
+
+function base64ToUint8Array(value) {
+  const padded = `${value}${"=".repeat((4 - (value.length % 4)) % 4)}`
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const raw = window.atob(padded);
+  return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
 function setMessage(text) {
@@ -276,6 +290,87 @@ async function loadAlertPreferences() {
   }
 }
 
+function renderNotifications() {
+  notificationList.replaceChildren();
+  const unread = notifications.filter((notification) => !notification.read_at).length;
+  notificationSummary.textContent = unread
+    ? `${unread} unread update${unread === 1 ? "" : "s"}.`
+    : "No unread updates.";
+  for (const notification of notifications) {
+    const job = notification.job;
+    if (!job) continue;
+    const row = document.createElement("article");
+    row.className = "notification-row";
+    const link = document.createElement("a");
+    link.href = job.source_url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = job.title;
+    const details = document.createElement("p");
+    details.textContent = [job.company, job.location].filter(Boolean).join(" · ");
+    row.append(link, details);
+    if (!notification.read_at) {
+      row.append(actionButton("Mark read", false, () => markNotificationRead(notification.id)));
+    }
+    notificationList.append(row);
+  }
+}
+
+async function loadNotifications() {
+  notifications = [];
+  if (!user) return;
+  const { data, error } = await client
+    .from("user_notifications")
+    .select("id, created_at, read_at, job:jobs(id, title, company, location, source_url)")
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error) return setMessage(`Could not load updates: ${error.message}`);
+  notifications = data;
+  renderNotifications();
+}
+
+async function markNotificationRead(id) {
+  const { error } = await client
+    .from("user_notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return setMessage(`Could not update notification: ${error.message}`);
+  await loadNotifications();
+}
+
+async function initializeNotificationState() {
+  if (!user) return;
+  await client.from("user_notification_states").upsert({
+    user_id: user.id,
+    last_checked_at: new Date().toISOString(),
+  });
+}
+
+async function enableBrowserPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !config?.vapidPublicKey) {
+    pushStatus.textContent = "Browser notifications are not configured for this site yet.";
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    pushStatus.textContent = "Browser notification permission was not granted.";
+    return;
+  }
+  const registration = await navigator.serviceWorker.register("service-worker.js");
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: base64ToUint8Array(config.vapidPublicKey),
+  });
+  const { error } = await client.from("web_push_subscriptions").upsert({
+    endpoint: subscription.endpoint,
+    user_id: user.id,
+    subscription: subscription.toJSON(),
+  });
+  pushStatus.textContent = error
+    ? `Could not enable browser notifications: ${error.message}`
+    : "Browser notifications enabled.";
+}
+
 async function loadTelegramSubscription() {
   telegramSubscription = null;
   if (!user) return;
@@ -405,9 +500,10 @@ async function updateSession(session) {
   authForm.hidden = Boolean(user);
   signOutButton.hidden = !user;
   alerts.hidden = !user;
+  notificationSection.hidden = !user;
   profileSection.hidden = !user;
   submissionSection.hidden = !user;
-  await Promise.all([loadUserData(), loadAlertPreferences(), loadTelegramSubscription()]);
+  await Promise.all([loadUserData(), loadAlertPreferences(), loadTelegramSubscription(), loadNotifications()]);
   await loadAdminDashboard();
   renderJobs();
 }
@@ -443,6 +539,7 @@ document.querySelector("#profile-form").addEventListener("submit", async (event)
   });
   if (error) return setMessage(`Could not save profile: ${error.message}`);
   await loadUserData();
+  await initializeNotificationState();
   renderJobs();
   setMessage("Matching profile saved.");
 });
@@ -455,10 +552,12 @@ document.querySelector("#alert-form").addEventListener("submit", async (event) =
     frequency: document.querySelector("#alert-frequency").value,
   });
   setMessage(error ? error.message : "Alert preferences saved.");
+  if (!error) await initializeNotificationState();
 });
 
 connectTelegramButton.addEventListener("click", connectTelegram);
 disconnectTelegramButton.addEventListener("click", disconnectTelegram);
+enablePushButton.addEventListener("click", enableBrowserPush);
 
 document.querySelector("#submission-form").addEventListener("submit", async (event) => {
   event.preventDefault();

@@ -13,6 +13,7 @@
         <a class="wordmark" href="#top" aria-label="OCaml Jobs home">OCaml Jobs</a>
         <nav aria-label="Site links">
           <a href="#jobs">Opportunities</a>
+          <a href="#notifications">Updates</a>
           <a href="#submission">Submit a role</a>
         </nav>
         <div class="auth-panel">
@@ -69,6 +70,17 @@
         <p id="message" role="status"></p>
       </div>
       <section id="jobs" aria-live="polite"></section>
+
+      <section id="notifications" class="account-section" hidden>
+        <p class="section-kicker">Your updates</p>
+        <h2>New roles matched to your profile</h2>
+        <p id="notification-summary">No unread updates.</p>
+        <div id="notification-list"></div>
+        <div class="push-controls">
+          <button id="enable-push" type="button">Enable browser notifications</button>
+          <p id="push-status">Browser notifications are optional.</p>
+        </div>
+      </section>
 
       <section id="profile" class="account-section" hidden>
         <p class="section-kicker">Personal matching</p>

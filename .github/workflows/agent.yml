@@ -93,6 +93,15 @@ jobs:
             exit "$sync_status"
           fi
 
+      - name: Create inbox notifications and send Web Push
+        continue-on-error: true
+        env:
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+        run: |
+          source .venv/bin/activate
+          PYTHONPATH=src python -m ocaml_agent.notifications
+
       - name: Deliver opted-in Telegram alerts
         continue-on-error: true
         env:

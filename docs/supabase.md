@@ -7,7 +7,8 @@ the Phase 2 web application.
 2. In the SQL Editor, run `supabase/migrations/001_phase_2.sql`, then
    `supabase/migrations/002_phase_3.sql`, `supabase/migrations/003_phase_4.sql`,
    `supabase/migrations/004_repair_existing_jobs_schema.sql`, and
-   `supabase/migrations/005_telegram_user_alerts.sql`.
+   `supabase/migrations/005_telegram_user_alerts.sql`, and
+   `supabase/migrations/006_in_app_notifications.sql`.
 3. Copy the project URL and publishable (or legacy anon) key into
    `web/config.js`. Those values are safe to expose in the browser because the
    migration enables Row Level Security.
@@ -37,6 +38,16 @@ the bot with a 24-hour linking token. The scheduled workflow confirms the
 `/start` command and sends newly matched jobs at each user's daily or weekly
 preference. Telegram chat IDs remain server-side and are never exposed in the
 browser.
+
+## In-app inbox and browser notifications
+
+The in-app inbox is the primary delivery channel: every matched role is stored
+in `user_notifications` before any external delivery is attempted. Browser
+notifications are optional. To enable them, generate a VAPID key pair, add the
+public key as `VAPID_PUBLIC_KEY` and `mailto:you@example.com` as
+`VAPID_SUBJECT` in GitHub repository Variables, then add the private key as
+the `VAPID_PRIVATE_KEY` repository secret. Users explicitly opt in through the
+site; expired browser subscriptions are removed automatically.
 
 To enable the in-app admin dashboard, first sign in, find your UUID in
 `auth.users` in the Supabase SQL Editor, then run:

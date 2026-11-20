@@ -169,6 +169,11 @@ h3 { font-size: 0.92rem; margin: 2.5rem 0 0.75rem; text-transform: uppercase; le
 .telegram-alerts { margin-top: 2rem; font-family: system-ui, sans-serif; font-size: 0.86rem; }
 .telegram-alerts h3 { margin-top: 0; }
 .telegram-alerts button + button { margin-left: 0.5rem; }
+.notification-row { border-top: 1px solid var(--line); padding: 0.85rem 0; font-family: system-ui, sans-serif; font-size: 0.88rem; }
+.notification-row p { margin: 0.25rem 0 0.6rem; color: var(--muted); }
+.notification-row button { font-size: 0.78rem; }
+.push-controls { margin-top: 1.5rem; font-family: system-ui, sans-serif; font-size: 0.86rem; }
+.push-controls p { margin: 0.5rem 0 0; color: var(--muted); }
 .account-section .wide-field { grid-column: 1 / -1; }
 .account-section form button { width: fit-content; }
 .admin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; border-top: 1px solid var(--line); padding: 0.8rem 0; font-family: system-ui, sans-serif; font-size: 0.84rem; }

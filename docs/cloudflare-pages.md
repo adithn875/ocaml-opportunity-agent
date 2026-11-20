@@ -16,6 +16,10 @@ repository through Cloudflare's Git integration.
    - `SUPABASE_PUBLISHABLE_KEY` as a repository variable.
    - `TELEGRAM_BOT_USERNAME` as a repository variable when enabling free
      user Telegram alerts. Use the bot username without `@`.
+   - `VAPID_PUBLIC_KEY` as a repository variable when enabling browser push.
+   - `VAPID_SUBJECT` as a repository variable, for example
+     `mailto:you@example.com`, when enabling browser push.
+   - `VAPID_PRIVATE_KEY` as a repository secret when enabling browser push.
 4. The workflow generates `web/config.js` with the two public Supabase values.
    Do not put a Supabase service-role key in this file or in a repository
    variable.

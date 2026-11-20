@@ -27,10 +27,11 @@ jobs:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
           TELEGRAM_BOT_USERNAME: ${{ vars.TELEGRAM_BOT_USERNAME }}
+          VAPID_PUBLIC_KEY: ${{ vars.VAPID_PUBLIC_KEY }}
         run: |
           test -n "$SUPABASE_URL"
           test -n "$SUPABASE_PUBLISHABLE_KEY"
-          printf 'window.OPPORTUNITY_AGENT_CONFIG = {\n  supabaseUrl: "%s",\n  supabasePublishableKey: "%s",\n  telegramBotUsername: "%s",\n};\n' "$SUPABASE_URL" "$SUPABASE_PUBLISHABLE_KEY" "$TELEGRAM_BOT_USERNAME" > web/config.js
+          printf 'window.OPPORTUNITY_AGENT_CONFIG = {\n  supabaseUrl: "%s",\n  supabasePublishableKey: "%s",\n  telegramBotUsername: "%s",\n  vapidPublicKey: "%s",\n};\n' "$SUPABASE_URL" "$SUPABASE_PUBLISHABLE_KEY" "$TELEGRAM_BOT_USERNAME" "$VAPID_PUBLIC_KEY" > web/config.js
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4
         with:

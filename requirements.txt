@@ -4,3 +4,4 @@ scrapling[fetchers]
 # Install the real one from GitHub:
 agent-reach @ https://github.com/Panniantong/agent-reach/archive/main.zip
 pyyaml
+pywebpush
