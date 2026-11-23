@@ -13,7 +13,9 @@ jobs:
   agent:
     runs-on: ubuntu-latest
     env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      # Keep the collector pointed at the same public Supabase project as the
+      # Cloudflare web deployment. The service-role key remains a secret.
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
