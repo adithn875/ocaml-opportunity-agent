@@ -253,6 +253,14 @@ def insert_opportunities(connection, opportunities: List[Dict]) -> int:
                     (opp["canonical_url"],),
                 )
                 if cursor.fetchone():
+                    cursor.execute(
+                        """
+                        UPDATE seen_items
+                        SET last_seen = CURRENT_TIMESTAMP
+                        WHERE canonical_url = ?
+                        """,
+                        (opp["canonical_url"],),
+                    )
                     continue
 
             # Insert

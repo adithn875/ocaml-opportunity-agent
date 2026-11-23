@@ -339,7 +339,8 @@ def save_opportunities(opportunities):
                          )
                         THEN excluded.description
                         ELSE seen_items.description
-                    END
+                    END,
+                    last_seen = CURRENT_TIMESTAMP
                 """,
                 (
                     url,

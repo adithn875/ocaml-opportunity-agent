@@ -18,6 +18,7 @@ const submissionSection = document.querySelector("#submission");
 const adminSection = document.querySelector("#admin");
 const pendingSubmissions = document.querySelector("#pending-submissions");
 const sourceHealth = document.querySelector("#source-health");
+const jobReports = document.querySelector("#job-reports");
 const notificationSection = document.querySelector("#notifications");
 const notificationSummary = document.querySelector("#notification-summary");
 const notificationList = document.querySelector("#notification-list");
@@ -39,6 +40,7 @@ let isAdmin = false;
 let newJobIds = new Set();
 let telegramSubscription = null;
 let notifications = [];
+let reportedJobIds = new Set();
 
 function previousVisit() {
   try {
@@ -70,6 +72,17 @@ function setMessage(text) {
 
 function csvValues(value) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function formatDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return value;
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function personalized(job) {
@@ -146,6 +159,14 @@ function renderJobs() {
       .filter(Boolean)
       .join(" · ");
 
+    const freshness = document.createElement("p");
+    freshness.className = "job-meta";
+    freshness.textContent = [
+      job.posted_date && `Posted ${formatDate(job.posted_date)}`,
+      job.last_seen_at && `Last seen ${formatDate(job.last_seen_at)}`,
+      job.deadline && `Deadline ${formatDate(job.deadline)}`,
+    ].filter(Boolean).join(" · ");
+
     const tags = document.createElement("div");
     tags.className = "job-tags";
     for (const tag of [job.employment_type, job.remote, job.source].filter(Boolean)) {
@@ -174,10 +195,15 @@ function renderJobs() {
       actionButton(saved ? "Saved" : "Save job", !user, () => toggleSavedJob(job.id)),
       actionButton("Interested", !user, () => updateFeedback(job.id, "interested")),
       actionButton("Not relevant", !user, () => updateFeedback(job.id, "not_relevant")),
+      actionButton(
+        reportedJobIds.has(job.id) ? "Reported" : "Report stale / wrong",
+        !user || reportedJobIds.has(job.id),
+        () => reportJobProblem(job.id),
+      ),
       applicationSelect(job.id),
     );
 
-    article.append(company, title, details, tags, score, explanation, actions);
+    article.append(company, title, details, freshness, tags, score, explanation, actions);
     jobsElement.append(article);
   }
 }
@@ -220,19 +246,21 @@ async function loadUserData() {
   profile = null;
   if (!user) return;
 
-  const [saved, feedback, applications, profileResult] = await Promise.all([
+  const [saved, feedback, applications, profileResult, reports] = await Promise.all([
     client.from("saved_jobs").select("job_id"),
     client.from("job_feedback").select("job_id, label"),
     client.from("job_applications").select("job_id, status"),
     client.from("user_profiles").select("*").maybeSingle(),
+    client.from("job_reports").select("job_id"),
   ]);
-  const failed = [saved, feedback, applications, profileResult].find((result) => result.error);
+  const failed = [saved, feedback, applications, profileResult, reports].find((result) => result.error);
   if (failed) return setMessage(`Could not load account data: ${failed.error.message}`);
 
   savedJobIds = new Set(saved.data.map((row) => row.job_id));
   feedbackByJob = new Map(feedback.data.map((row) => [row.job_id, row.label]));
   applicationsByJob = new Map(applications.data.map((row) => [row.job_id, row.status]));
   profile = profileResult.data;
+  reportedJobIds = new Set(reports.data.map((row) => row.job_id));
   if (profile) {
     document.querySelector("#profile-skills").value = profile.skills.join(", ");
     document.querySelector("#profile-locations").value = profile.locations.join(", ");
@@ -241,6 +269,17 @@ async function loadUserData() {
   } else {
     document.querySelector("#profile-form").reset();
   }
+}
+
+async function reportJobProblem(jobId) {
+  const { error } = await client.from("job_reports").insert({
+    job_id: jobId,
+    reported_by: user.id,
+  });
+  if (error) return setMessage(`Could not submit report: ${error.message}`);
+  reportedJobIds.add(jobId);
+  renderJobs();
+  setMessage("Thanks — this listing is now in the review queue.");
 }
 
 async function toggleSavedJob(jobId) {
@@ -439,6 +478,15 @@ async function updateSubmission(id, status) {
   await loadAdminDashboard();
 }
 
+async function updateJobReport(id, status) {
+  const { error } = await client
+    .from("job_reports")
+    .update({ status, reviewed_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return setMessage(`Could not review report: ${error.message}`);
+  await loadAdminDashboard();
+}
+
 async function loadAdminDashboard() {
   isAdmin = false;
   adminSection.hidden = true;
@@ -449,7 +497,7 @@ async function loadAdminDashboard() {
   isAdmin = Boolean(admin);
   if (!isAdmin) return;
 
-  const [submissions, runs] = await Promise.all([
+  const [submissions, runs, reports] = await Promise.all([
     client
       .from("employer_submissions")
       .select("id, title, company, source_url, location, created_at")
@@ -460,8 +508,13 @@ async function loadAdminDashboard() {
       .select("source, started_at, status, new_items, error")
       .order("started_at", { ascending: false })
       .limit(50),
+    client
+      .from("job_reports")
+      .select("id, report_type, created_at, job:jobs(title, company, source_url)")
+      .eq("status", "pending")
+      .order("created_at"),
   ]);
-  const failed = [submissions, runs].find((result) => result.error);
+  const failed = [submissions, runs, reports].find((result) => result.error);
   if (failed) return setMessage(`Could not load admin data: ${failed.error.message}`);
 
   renderAdminRows(
@@ -489,6 +542,23 @@ async function loadAdminDashboard() {
     const row = document.createElement("div");
     row.className = "admin-row";
     row.textContent = `${run.source}: ${run.status.toUpperCase()} · ${run.new_items} new · ${run.started_at}${run.error ? ` · ${run.error}` : ""}`;
+    return row;
+  });
+  renderAdminRows(jobReports, reports.data, "No pending community reports.", (report) => {
+    const row = document.createElement("div");
+    row.className = "admin-row";
+    const link = document.createElement("a");
+    link.href = report.job?.source_url || "#";
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = report.job
+      ? `${report.job.title} — ${report.job.company || "Unknown company"}`
+      : "Deleted job";
+    row.append(link, document.createTextNode(` · ${report.report_type.replaceAll("_", " ")} `));
+    row.append(
+      actionButton("Resolve", false, () => updateJobReport(report.id, "resolved")),
+      actionButton("Dismiss", false, () => updateJobReport(report.id, "dismissed")),
+    );
     return row;
   });
   adminSection.hidden = false;

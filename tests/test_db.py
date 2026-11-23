@@ -36,9 +36,10 @@ class DatabaseMigrationTests(unittest.TestCase):
                 ).fetchone()
 
         self.assertTrue(set(db.SCORING_COLUMNS).issubset(columns))
-        self.assertEqual(versions, [1, 2, 3, 4])
+        self.assertEqual(versions, [1, 2, 3, 4, 5])
         self.assertIsNotNone(source_runs_exists)
         self.assertIsNotNone(telegram_cursor_exists)
+        self.assertIn("last_seen", columns)
 
     def test_connect_upgrades_a_legacy_database(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -91,7 +91,7 @@ def save_jobs(jobs):
 
         cursor = con.execute(
             """
-            INSERT OR IGNORE INTO seen_items (
+            INSERT INTO seen_items (
                 canonical_url,
                 title,
                 company,
@@ -100,6 +100,8 @@ def save_jobs(jobs):
                 source
             )
             VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(canonical_url) DO UPDATE SET
+                last_seen = CURRENT_TIMESTAMP
             """,
             (
                 canonical_url,

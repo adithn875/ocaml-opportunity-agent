@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS seen_items (
     source        TEXT,
     score         REAL,                   -- filled by the LLM step (Milestone 3)
     first_seen    TEXT DEFAULT CURRENT_TIMESTAMP,
+    last_seen     TEXT DEFAULT CURRENT_TIMESTAMP,
     emailed       INTEGER DEFAULT 0,
     description   TEXT
 );
@@ -88,7 +89,8 @@ CREATE TABLE IF NOT EXISTS seen_items (
     final_score         REAL,
     practicality_score  REAL,
     opportunity_class   TEXT,
-    practicality_reason TEXT
+    practicality_reason TEXT,
+    last_seen           TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_title_company ON seen_items(company, title);
 
@@ -128,11 +130,29 @@ def _add_telegram_alert_state(connection: sqlite3.Connection) -> None:
     connection.executescript(TELEGRAM_ALERTS_SCHEMA)
 
 
+def _add_last_seen_column(connection: sqlite3.Connection) -> None:
+    """Record when a collector most recently observed each opportunity."""
+    existing_columns = {
+        row[1]
+        for row in connection.execute("PRAGMA table_info(seen_items)")
+    }
+    if "last_seen" not in existing_columns:
+        connection.execute("ALTER TABLE seen_items ADD COLUMN last_seen TEXT")
+    connection.execute(
+        """
+        UPDATE seen_items
+        SET last_seen = COALESCE(last_seen, first_seen, CURRENT_TIMESTAMP)
+        WHERE last_seen IS NULL
+        """
+    )
+
+
 MIGRATIONS = (
     _apply_initial_schema,
     _add_scoring_columns,
     _add_source_runs,
     _add_telegram_alert_state,
+    _add_last_seen_column,
 )
 
 

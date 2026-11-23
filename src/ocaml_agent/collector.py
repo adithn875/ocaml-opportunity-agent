@@ -132,7 +132,7 @@ def save_jobs(jobs):
         for job in jobs:
             cursor.execute(
                 """
-                INSERT OR IGNORE INTO seen_items (
+                INSERT INTO seen_items (
                     canonical_url,
                     title,
                     company,
@@ -145,6 +145,8 @@ def save_jobs(jobs):
                     score
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(canonical_url) DO UPDATE SET
+                    last_seen = CURRENT_TIMESTAMP
                 """,
                 (
                     job["canonical_url"],

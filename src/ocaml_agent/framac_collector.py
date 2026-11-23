@@ -107,14 +107,8 @@ def save_jobs(jobs):
                     WHEN NULLIF(TRIM(seen_items.description), '') IS NULL
                     THEN excluded.description
                     ELSE seen_items.description
-                END
-            WHERE (
-                NULLIF(TRIM(seen_items.title), '') IS NULL
-                AND NULLIF(TRIM(excluded.title), '') IS NOT NULL
-            ) OR (
-                NULLIF(TRIM(seen_items.description), '') IS NULL
-                AND NULLIF(TRIM(excluded.description), '') IS NOT NULL
-            )
+                END,
+                last_seen = CURRENT_TIMESTAMP
             """,
             (
                 job["url"],

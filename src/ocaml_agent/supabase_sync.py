@@ -28,6 +28,7 @@ REQUIRED_COLUMNS = {
         "llm_score",
         "final_score",
         "first_seen",
+        "last_seen_at",
     ),
     "source_runs": (
         "source_run_key",
@@ -62,7 +63,8 @@ def load_jobs(database_path: Path | str = DB_PATH) -> list[dict]:
                 score,
                 llm_score,
                 final_score,
-                first_seen
+                first_seen,
+                last_seen
             FROM seen_items
             ORDER BY id
             """
@@ -83,6 +85,7 @@ def load_jobs(database_path: Path | str = DB_PATH) -> list[dict]:
         "llm_score",
         "final_score",
         "first_seen",
+        "last_seen_at",
     )
     return [dict(zip(fields, row)) for row in rows]
 

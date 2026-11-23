@@ -219,9 +219,13 @@ def save_jobs(jobs):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(canonical_url) DO UPDATE SET
-                description = excluded.description
-            WHERE NULLIF(TRIM(excluded.description), '') IS NOT NULL
-              AND NULLIF(TRIM(seen_items.description), '') IS NULL
+                description = CASE
+                    WHEN NULLIF(TRIM(seen_items.description), '') IS NULL
+                     AND NULLIF(TRIM(excluded.description), '') IS NOT NULL
+                    THEN excluded.description
+                    ELSE seen_items.description
+                END,
+                last_seen = CURRENT_TIMESTAMP
             """,
             (
                 canonical_url,
