@@ -97,6 +97,8 @@ paying for a broad, poorly targeted posting channel.
 - Deduplicate records by canonical URL and retain source attribution.
 - Extract title, company, location, employment type where available,
   description, source URL, first-seen date, and source name.
+- Attach transparent technology/domain tags only when supported by the title or
+  source description, so users can scan a specialist role without guessing.
 - Apply deterministic OCaml/PL relevance rules before costly contextual scoring.
 - Rank roles using transparent technical relevance and practical-suitability
   components.

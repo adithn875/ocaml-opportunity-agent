@@ -96,7 +96,7 @@ function filteredJobs() {
   const minimumScore = Math.max(Number(scoreFilter.value) || 0, profileMinimum);
 
   return jobs.filter((job) => {
-    const searchable = [job.title, job.company, job.description, job.location]
+    const searchable = [job.title, job.company, job.description, job.location, ...(job.tags || [])]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
@@ -169,7 +169,7 @@ function renderJobs() {
 
     const tags = document.createElement("div");
     tags.className = "job-tags";
-    for (const tag of [job.employment_type, job.remote, job.source].filter(Boolean)) {
+    for (const tag of [...(job.tags || []), job.employment_type, job.remote, job.source].filter(Boolean)) {
       const tagElement = document.createElement("span");
       tagElement.textContent = tag;
       tags.append(tagElement);

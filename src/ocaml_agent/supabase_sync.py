@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib import error, request
 
 from . import db
+from .job_tags import derive_tags
 
 
 DB_PATH = Path("data/agent.db")
@@ -29,6 +30,7 @@ REQUIRED_COLUMNS = {
         "final_score",
         "first_seen",
         "last_seen_at",
+        "tags",
     ),
     "source_runs": (
         "source_run_key",
@@ -87,7 +89,10 @@ def load_jobs(database_path: Path | str = DB_PATH) -> list[dict]:
         "first_seen",
         "last_seen_at",
     )
-    return [dict(zip(fields, row)) for row in rows]
+    jobs = [dict(zip(fields, row)) for row in rows]
+    for job in jobs:
+        job["tags"] = derive_tags(job["title"], job["description"])
+    return jobs
 
 
 def load_source_runs(database_path: Path | str = DB_PATH) -> list[dict]:

@@ -40,6 +40,7 @@ class SupabaseSyncTests(unittest.TestCase):
         self.assertEqual(jobs[0]["employment_type"], "full-time")
         self.assertEqual(jobs[0]["final_score"], 86.5)
         self.assertIsNotNone(jobs[0]["last_seen_at"])
+        self.assertEqual(jobs[0]["tags"], ["OCaml"])
 
     def test_load_source_runs_generates_a_stable_upsert_key(self):
         with tempfile.TemporaryDirectory() as directory:
